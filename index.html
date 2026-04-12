@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MET Quiz - Your English World</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Your English World</h1>
+      <p class="subtitle">MET Practice Test</p>
+    </header>
+
+    <div id="progress-container">
+      <div id="progress-bar"></div>
+    </div>
+    <p id="progress-text">Pregunta 1 de 10</p>
+
+    <div id="category-badge"></div>
+
+    <div id="quiz-container">
+      <div id="audio-container"></div>
+      <div id="reading-text"></div>
+      <div id="question-text"></div>
+      <div id="options-container"></div>
+      <div id="feedback-container"></div>
+    </div>
+
+    <div id="controls">
+      <button id="restart-btn" class="btn btn-secondary">Reiniciar Pregunta</button>
+      <button id="check-btn" class="btn btn-primary">Comprobar</button>
+      <button id="next-btn" class="btn btn-primary">Siguiente</button>
+    </div>
+
+    <div id="results-container" class="hidden">
+      <h2>¡Test Completado!</h2>
+      <p id="score-display"></p>
+      <div id="results-breakdown"></div>
+      <button id="email-btn" class="btn btn-primary">Enviar Resultados por Email</button>
+      <button id="restart-test-btn" class="btn btn-secondary">Reiniciar Test</button>
+    </div>
+
+    <div id="category-select" class="hidden">
+      <h2>Selecciona una categoría</h2>
+      <div id="category-buttons"></div>
+      <button id="continue-btn" class="btn btn-secondary">Continuar desde donde estaba</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
