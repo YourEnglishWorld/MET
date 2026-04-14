@@ -118,12 +118,14 @@ function renderCategorySelect() {
   getElement('quiz-container').classList.add('hidden');
   getElement('controls').classList.add('hidden');
   getElement('results-container').classList.add('hidden');
+  getElement('progress-container').classList.add('hidden');
+  getElement('progress-text').classList.add('hidden');
+  getElement('category-badge').classList.add('hidden');
+  getElement('audio-container').classList.add('hidden');
+  getElement('reading-text').classList.add('hidden');
+  getElement('transcription-toggle').classList.add('hidden');
+  getElement('transcription-text').classList.add('hidden');
   getElement('category-select').classList.remove('hidden');
-  getElement('progress-container').style.display = 'none';
-  getElement('progress-text').style.display = 'none';
-  getElement('category-badge').style.display = 'none';
-  getElement('audio-container').style.display = 'none';
-  getElement('reading-text').style.display = 'none';
 
   const container = getElement('category-buttons');
   container.innerHTML = '';
@@ -200,9 +202,9 @@ function startFromCategory(category) {
   answeredQuestions.clear();
 
   getElement('category-select').classList.add('hidden');
-  getElement('progress-container').style.display = 'block';
-  getElement('progress-text').style.display = 'block';
-  getElement('category-badge').style.display = 'block';
+  getElement('progress-container').classList.remove('hidden');
+  getElement('progress-text').classList.remove('hidden');
+  getElement('category-badge').classList.remove('hidden');
   getElement('quiz-container').classList.remove('hidden');
   getElement('controls').classList.remove('hidden');
 
@@ -309,20 +311,22 @@ function loadQuestion() {
 
   if (question.isGuide) {
     renderGuide(question);
-    getElement('controls').style.display = 'none';
+    getElement('controls').classList.add('hidden');
     return;
   }
 
-  getElement('controls').style.display = 'flex';
+  getElement('controls').classList.remove('hidden');
 
   if (question.audio) {
     getElement('audio-container').innerHTML = `<audio controls src="${question.audio}"></audio>`;
-    getElement('audio-container').style.display = 'block';
+    getElement('audio-container').classList.remove('hidden');
+  } else {
+    getElement('audio-container').classList.add('hidden');
   }
 
   if (question.transcription) {
     getElement('transcription-toggle').innerHTML = `<button id="transcription-btn" data-tooltip="Transcription">T</button>`;
-    getElement('transcription-toggle').style.display = 'block';
+    getElement('transcription-toggle').classList.remove('hidden');
     getElement('transcription-btn').addEventListener('click', toggleTranscription);
     
     let transcriptionContent = question.transcription;
@@ -332,14 +336,18 @@ function loadQuestion() {
     getElement('transcription-text').innerHTML = transcriptionContent;
     getElement('transcription-text').classList.add('hidden');
     document.getElementById('transcription-btn').classList.remove('active');
+  } else {
+    getElement('transcription-toggle').classList.add('hidden');
   }
 
   if (question.lectureText) {
     getElement('reading-text').innerHTML = `<strong>Lecture:</strong><br><br>${question.lectureText}`;
-    getElement('reading-text').style.display = 'block';
+    getElement('reading-text').classList.remove('hidden');
   } else if (question.text) {
     getElement('reading-text').textContent = question.text;
-    getElement('reading-text').style.display = 'block';
+    getElement('reading-text').classList.remove('hidden');
+  } else {
+    getElement('reading-text').classList.add('hidden');
   }
 
   getElement('question-text').textContent = question.transcription || question.question;
@@ -439,12 +447,12 @@ function restartQuestion() {
 function showResults() {
   getElement('quiz-container').classList.add('hidden');
   getElement('controls').classList.add('hidden');
-  getElement('progress-container').style.display = 'none';
-  getElement('progress-text').style.display = 'none';
-  getElement('category-badge').style.display = 'none';
-  getElement('audio-container').style.display = 'none';
-  getElement('reading-text').style.display = 'none';
-  getElement('transcription-toggle').style.display = 'none';
+  getElement('progress-container').classList.add('hidden');
+  getElement('progress-text').classList.add('hidden');
+  getElement('category-badge').classList.add('hidden');
+  getElement('audio-container').classList.add('hidden');
+  getElement('reading-text').classList.add('hidden');
+  getElement('transcription-toggle').classList.add('hidden');
   getElement('transcription-text').classList.add('hidden');
   getElement('results-container').classList.remove('hidden');
 
@@ -551,9 +559,9 @@ async function continueFromSaved() {
       });
 
       getElement('category-select').classList.add('hidden');
-      getElement('progress-container').style.display = 'block';
-      getElement('progress-text').style.display = 'block';
-      getElement('category-badge').style.display = 'block';
+      getElement('progress-container').classList.remove('hidden');
+      getElement('progress-text').classList.remove('hidden');
+      getElement('category-badge').classList.remove('hidden');
       getElement('quiz-container').classList.remove('hidden');
       getElement('controls').classList.remove('hidden');
 
@@ -577,14 +585,15 @@ async function init() {
   const loaded = await loadAllData();
 
   if (loaded) {
-    const savedProgress = loadProgress();
-    if (savedProgress && savedProgress.currentCategory) {
-      renderCategorySelect();
-    } else {
-      renderCategorySelect();
-    }
+    renderCategorySelect();
   } else {
-    getElement('category-select').innerHTML = '<p>Error al cargar los datos. Por favor, recargue la página.</p>';
+    document.getElementById('category-select').innerHTML = `
+      <div style="padding: 20px; background: #fff3cd; border-radius: 12px; color: #856404; margin: 20px 0;">
+        <h3>⚠️ Error al cargar datos</h3>
+        <p>No se pudieron cargar las preguntas. Por favor, recarga la página o intenta más tarde.</p>
+      </div>
+    `;
+    document.getElementById('category-select').classList.remove('hidden');
   }
 }
 
