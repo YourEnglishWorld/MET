@@ -14,6 +14,8 @@ let answeredQuestions = new Set();
 let shuffledQuestions = [];
 let currentCategory = null;
 let currentExerciseIndex = 0;
+let currentAudioSrc = null;
+let currentAudioElement = null;
 
 const letters = ['A', 'B', 'C', 'D'];
 
@@ -115,16 +117,8 @@ async function loadAllData() {
 }
 
 function renderCategorySelect() {
-  getElement('quiz-container').classList.add('hidden');
-  getElement('controls').classList.add('hidden');
+  getElement('quiz-view').classList.add('hidden');
   getElement('results-container').classList.add('hidden');
-  getElement('progress-container').classList.add('hidden');
-  getElement('progress-text').classList.add('hidden');
-  getElement('category-badge').classList.add('hidden');
-  getElement('audio-container').classList.add('hidden');
-  getElement('reading-text').classList.add('hidden');
-  getElement('transcription-toggle').classList.add('hidden');
-  getElement('transcription-text').classList.add('hidden');
   getElement('category-select').classList.remove('hidden');
 
   const container = getElement('category-buttons');
@@ -140,11 +134,22 @@ function renderCategorySelect() {
 
   categories.forEach(cat => {
     const data = quizData[cat.key];
-    const count = cat.key === 'GRAMMAR' ? data.length : flattenQuestions(cat.key, data).length;
+    let count, label;
+    
+    if (cat.key === 'GRAMMAR') {
+      count = data.length;
+      label = `${cat.name} - ${count} preguntas`;
+    } else if (cat.key === 'WRITING' || cat.key === 'SPEAKING') {
+      count = data.length;
+      label = count > 0 ? `${cat.name} - Guía de estudio` : `${cat.name} - Pronto disponible`;
+    } else {
+      count = flattenQuestions(cat.key, data).length;
+      label = `${cat.name} - ${count} preguntas`;
+    }
 
     const btn = document.createElement('button');
     btn.className = 'category-btn';
-    btn.innerHTML = `<strong>${cat.key}</strong><span>${cat.name} - ${count} preguntas</span>`;
+    btn.innerHTML = `<strong>${cat.key}</strong><span>${label}</span>`;
     if (count === 0) {
       btn.style.opacity = '0.5';
       btn.style.pointerEvents = 'none';
@@ -202,13 +207,12 @@ function startFromCategory(category) {
   selectedOptionIndex = null;
   score = { GRAMMAR: 0, READING: 0, LISTENING: 0, WRITING: 0, SPEAKING: 0 };
   answeredQuestions.clear();
+  currentAudioSrc = null;
+  currentAudioElement = null;
 
   getElement('category-select').classList.add('hidden');
-  getElement('progress-container').classList.remove('hidden');
-  getElement('progress-text').classList.remove('hidden');
-  getElement('category-badge').classList.remove('hidden');
-  getElement('quiz-container').classList.remove('hidden');
-  getElement('controls').classList.remove('hidden');
+  getElement('quiz-view').classList.remove('hidden');
+  getElement('results-container').classList.add('hidden');
 
   loadQuestion();
   saveProgress();
@@ -304,8 +308,6 @@ function loadQuestion() {
 
   getElement('category-badge').textContent = question.category;
 
-  getElement('audio-container').innerHTML = '';
-  getElement('audio-container').classList.add('hidden');
   getElement('transcription-toggle').innerHTML = '';
   getElement('transcription-toggle').classList.add('hidden');
   getElement('transcription-text').classList.add('hidden');
@@ -320,10 +322,16 @@ function loadQuestion() {
   getElement('controls').classList.remove('hidden');
 
   if (question.audio) {
-    getElement('audio-container').innerHTML = `<audio controls src="${question.audio}"></audio>`;
+    if (currentAudioSrc !== question.audio) {
+      currentAudioSrc = question.audio;
+      getElement('audio-container').innerHTML = `<audio id="main-audio" controls src="${question.audio}"></audio>`;
+      currentAudioElement = document.getElementById('main-audio');
+    }
     getElement('audio-container').classList.remove('hidden');
   } else {
     getElement('audio-container').classList.add('hidden');
+    currentAudioSrc = null;
+    currentAudioElement = null;
   }
 
   if (question.transcription) {
@@ -338,8 +346,13 @@ function loadQuestion() {
     getElement('transcription-text').innerHTML = transcriptionContent;
     getElement('transcription-text').classList.add('hidden');
     document.getElementById('transcription-btn').classList.remove('active');
+    
+    getElement('question-text').textContent = '';
+    getElement('question-text').classList.add('hidden');
   } else {
     getElement('transcription-toggle').classList.add('hidden');
+    getElement('question-text').textContent = question.question;
+    getElement('question-text').classList.remove('hidden');
   }
 
   if (question.lectureText) {
@@ -348,11 +361,7 @@ function loadQuestion() {
   } else if (question.text) {
     getElement('reading-text').textContent = question.text;
     getElement('reading-text').classList.remove('hidden');
-  } else {
-    getElement('reading-text').classList.add('hidden');
   }
-
-  getElement('question-text').textContent = question.transcription || question.question;
 
   const optionsContainer = getElement('options-container');
   optionsContainer.innerHTML = '';
@@ -448,15 +457,7 @@ function restartQuestion() {
 }
 
 function showResults() {
-  getElement('quiz-container').classList.add('hidden');
-  getElement('controls').classList.add('hidden');
-  getElement('progress-container').classList.add('hidden');
-  getElement('progress-text').classList.add('hidden');
-  getElement('category-badge').classList.add('hidden');
-  getElement('audio-container').classList.add('hidden');
-  getElement('reading-text').classList.add('hidden');
-  getElement('transcription-toggle').classList.add('hidden');
-  getElement('transcription-text').classList.add('hidden');
+  getElement('quiz-view').classList.add('hidden');
   getElement('results-container').classList.remove('hidden');
 
   const totalScore = Object.values(score).reduce((a, b) => a + b, 0);
@@ -471,7 +472,14 @@ function showResults() {
   const categories = ['GRAMMAR', 'READING', 'LISTENING', 'WRITING', 'SPEAKING'];
   categories.forEach(cat => {
     if (quizData[cat].length > 0 || score[cat] > 0) {
-      const count = cat === 'GRAMMAR' ? quizData[cat].length : flattenQuestions(cat, quizData[cat]).length;
+      let count;
+      if (cat === 'GRAMMAR') {
+        count = quizData[cat].length;
+      } else if (cat === 'WRITING' || cat === 'SPEAKING') {
+        count = quizData[cat].length;
+      } else {
+        count = flattenQuestions(cat, quizData[cat]).length;
+      }
       if (count > 0) {
         const div = document.createElement('div');
         div.className = 'result-category';
@@ -521,6 +529,8 @@ function restartTest() {
   shuffledQuestions = [];
   currentCategory = null;
   currentExerciseIndex = 0;
+  currentAudioSrc = null;
+  currentAudioElement = null;
 
   getElement('results-container').classList.add('hidden');
   renderCategorySelect();
@@ -562,11 +572,7 @@ async function continueFromSaved() {
       });
 
       getElement('category-select').classList.add('hidden');
-      getElement('progress-container').classList.remove('hidden');
-      getElement('progress-text').classList.remove('hidden');
-      getElement('category-badge').classList.remove('hidden');
-      getElement('quiz-container').classList.remove('hidden');
-      getElement('controls').classList.remove('hidden');
+      getElement('quiz-view').classList.remove('hidden');
 
       loadQuestion();
     }

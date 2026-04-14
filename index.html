@@ -8,32 +8,43 @@
 </head>
 <body>
   <div class="container">
-    <header>
-      <h1>Your English World</h1>
-      <p class="subtitle">MET Practice Test</p>
-    </header>
-
-    <div id="progress-container" class="hidden">
-      <div id="progress-bar"></div>
-    </div>
-    <p id="progress-text" class="hidden">Pregunta 1 de 10</p>
-
-    <div id="category-badge" class="hidden"></div>
-
-    <div id="quiz-container" class="hidden">
-      <div id="audio-container" class="hidden"></div>
-      <div id="transcription-toggle" class="hidden"></div>
-      <div id="transcription-text" class="hidden"></div>
-      <div id="reading-text" class="hidden"></div>
-      <div id="question-text"></div>
-      <div id="options-container"></div>
-      <div id="feedback-container" class="hidden"></div>
+    <div id="category-select" class="hidden">
+      <header>
+        <h1>Your English World</h1>
+        <p class="subtitle">MET Practice Test</p>
+      </header>
+      <h2>Selecciona una categoría</h2>
+      <div id="category-buttons"></div>
+      <button id="continue-btn" class="btn btn-secondary hidden">Continuar desde donde estaba</button>
     </div>
 
-    <div id="controls" class="hidden">
-      <button id="restart-btn" class="btn btn-secondary">Reiniciar Pregunta</button>
-      <button id="check-btn" class="btn btn-primary">Comprobar</button>
-      <button id="next-btn" class="btn btn-primary">Siguiente</button>
+    <div id="quiz-view" class="hidden">
+      <div id="progress-container">
+        <div id="progress-bar"></div>
+      </div>
+      <p id="progress-text">Pregunta 1 de 10</p>
+
+      <div id="category-badge"></div>
+
+      <div id="quiz-container">
+        <div id="audio-container" class="hidden"></div>
+        <div id="transcription-toggle" class="hidden"></div>
+        <div id="transcription-text" class="hidden"></div>
+        <div id="reading-text" class="hidden"></div>
+        <div id="question-text"></div>
+        <div id="options-container"></div>
+        <div id="feedback-container" class="hidden"></div>
+      </div>
+
+      <div id="controls">
+        <button id="restart-btn" class="btn btn-secondary">Reiniciar Pregunta</button>
+        <button id="check-btn" class="btn btn-primary">Comprobar</button>
+        <button id="next-btn" class="btn btn-primary">Siguiente</button>
+      </div>
+
+      <footer id="quiz-footer">
+        <p>Your English World - MET Practice Test</p>
+      </footer>
     </div>
 
     <div id="results-container" class="hidden">
@@ -42,12 +53,6 @@
       <div id="results-breakdown"></div>
       <button id="email-btn" class="btn btn-primary">Enviar Resultados por Email</button>
       <button id="restart-test-btn" class="btn btn-secondary">Reiniciar Test</button>
-    </div>
-
-    <div id="category-select" class="hidden">
-      <h2>Selecciona una categoría</h2>
-      <div id="category-buttons"></div>
-      <button id="continue-btn" class="btn btn-secondary hidden">Continuar desde donde estaba</button>
     </div>
   </div>
 
