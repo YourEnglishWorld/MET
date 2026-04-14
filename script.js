@@ -94,11 +94,11 @@ function flattenQuestions(category, data) {
 async function loadAllData() {
   try {
     const results = await Promise.all([
-      fetch('data/grammar.json').then(r => { if (!r.ok) throw new Error('grammar.json'); return r.json(); }),
-      fetch('data/reading.json').then(r => { if (!r.ok) throw new Error('reading.json'); return r.json(); }),
-      fetch('data/listening.json').then(r => { if (!r.ok) throw new Error('listening.json'); return r.json(); }),
-      fetch('data/writing.json').then(r => { if (!r.ok) throw new Error('writing.json'); return r.json(); }),
-      fetch('data/speaking.json').then(r => { if (!r.ok) throw new Error('speaking.json'); return r.json(); })
+      fetch('data/grammar.json').then(r => r.json()),
+      fetch('data/reading.json').then(r => r.json()),
+      fetch('data/listening.json').then(r => r.json()),
+      fetch('data/writing.json').then(r => r.json()),
+      fetch('data/speaking.json').then(r => r.json())
     ]);
 
     quizData.GRAMMAR = results[0];
@@ -107,7 +107,6 @@ async function loadAllData() {
     quizData.WRITING = results[3];
     quizData.SPEAKING = results[4];
 
-    console.log('Datos cargados:', quizData);
     return true;
   } catch (error) {
     console.error('Error loading data:', error);
@@ -152,8 +151,6 @@ function renderCategorySelect() {
     }
     btn.addEventListener('click', () => startFromCategory(cat.key));
     container.appendChild(btn);
-    
-    console.log(`Categoría ${cat.key}: ${count} preguntas`);
   });
 
   const savedProgress = loadProgress();
@@ -586,19 +583,17 @@ function initEventListeners() {
 }
 
 async function init() {
-  console.log('Iniciando script...');
   initEventListeners();
 
   const loaded = await loadAllData();
 
-  console.log('Datos cargados, mostrando categorías...');
   renderCategorySelect();
   
   if (!loaded) {
     document.getElementById('category-select').innerHTML = `
       <div style="padding: 20px; background: #fff3cd; border-radius: 12px; color: #856404; margin: 20px 0;">
         <h3>⚠️ Advertencia</h3>
-        <p>Algunos datos no se cargaron correctamente. Verifica la consola para más detalles.</p>
+        <p>Algunos datos no se cargaron correctamente.</p>
       </div>
     `;
   }
