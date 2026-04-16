@@ -2,7 +2,7 @@ const quizData = {
   GRAMMAR: [],
   READING: [],
   LISTENING: [],
-  WRITING: [],
+  WRITING: null,
   SPEAKING: []
 };
 
@@ -20,9 +20,26 @@ let currentAudioElement = null;
 let currentUser = null;
 let pendingCategory = null;
 
+let currentWritingGroup = null;
+let writingResponses = [];
+let currentWritingStep = 0;
+let currentPreviewIndex = 0;
+
 const letters = ['A', 'B', 'C', 'D'];
 
 const APPS_SCRIPT_URL = 'YOUR_GOOGLE_APPS_SCRIPT_URL';
+
+const TASK1_CHAR_LIMIT = 750;
+const TASK2_CHAR_LIMIT = 3500;
+
+const WRITING_STEPS = {
+  INSTRUCTIONS: 0,
+  TASK1_Q1: 1,
+  TASK1_Q2: 2,
+  TASK1_Q3: 3,
+  TASK2: 4,
+  PREVIEW: 5
+};
 
 function shuffleArray(array) {
   const shuffled = [...array];
@@ -119,6 +136,35 @@ async function logActivity(action, detail = '') {
   }
 }
 
+async function logWritingResponse(questionNum, task, response) {
+  if (!currentUser || !currentWritingGroup) return;
+  
+  const data = {
+    timestamp: new Date().toISOString(),
+    name: currentUser.name,
+    email: currentUser.email,
+    category: 'WRITING',
+    action: 'RESPUESTA',
+    detail: JSON.stringify({
+      groupId: currentWritingGroup.id,
+      task: task,
+      question: questionNum,
+      response: response
+    })
+  };
+
+  try {
+    await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+  } catch (error) {
+    console.log('Writing response logged locally:', data);
+  }
+}
+
 function showRegistrationModal() {
   getElement('registration-modal').classList.remove('hidden');
   getElement('reg-name').value = '';
@@ -151,34 +197,49 @@ function hideChangeUserModal() {
   getElement('change-user-modal').classList.add('hidden');
 }
 
-function getAudioTitle(exerciseIndex) {
-  if (currentCategory === 'LISTENING' && quizData.LISTENING[exerciseIndex]) {
-    return quizData.LISTENING[exerciseIndex].title || 'Listening';
-  }
-  return currentCategory;
+function updateProgressBar() {
+  getElement('progress-bar').style.width = '0%';
+  getElement('progress-text').textContent = '';
 }
 
-function updateProgressBar() {
-  const question = shuffledQuestions[currentQuestionIndex];
-  const total = allQuestions.length;
-  const current = currentQuestionIndex + 1;
-  const percentage = (current / total) * 100;
+function updateWritingProgress() {
+  const writingData = quizData.WRITING;
+  const totalQuestions = 4;
+  const task1Questions = currentWritingStep <= WRITING_STEPS.TASK1_Q3 ? currentWritingStep : 3;
   
-  getElement('progress-bar').style.width = percentage + '%';
-  
-  if (currentCategory === 'LISTENING' && question.audio) {
-    const exerciseNum = question.exerciseIndex + 1;
-    const questionsInExercise = shuffledQuestions.filter(
-      q => q.exerciseIndex === question.exerciseIndex
-    ).length;
-    const questionInExercise = shuffledQuestions
-      .slice(0, currentQuestionIndex + 1)
-      .filter(q => q.exerciseIndex === question.exerciseIndex).length;
-    
-    getElement('progress-text').textContent = `Audio ${exerciseNum}: Part ${questionInExercise}/${questionsInExercise}`;
-  } else {
-    getElement('progress-text').textContent = `${current}/${total}`;
+  let progressText = '';
+  let percentage = 0;
+
+  switch (currentWritingStep) {
+    case WRITING_STEPS.INSTRUCTIONS:
+      progressText = 'Instrucciones';
+      percentage = 0;
+      break;
+    case WRITING_STEPS.TASK1_Q1:
+      progressText = 'Task 1: Q1/3';
+      percentage = 10;
+      break;
+    case WRITING_STEPS.TASK1_Q2:
+      progressText = 'Task 1: Q2/3';
+      percentage = 30;
+      break;
+    case WRITING_STEPS.TASK1_Q3:
+      progressText = 'Task 1: Q3/3';
+      percentage = 50;
+      break;
+    case WRITING_STEPS.TASK2:
+      progressText = 'Task 2: Essay';
+      percentage = 75;
+      break;
+    case WRITING_STEPS.PREVIEW:
+      progressText = 'Revisar';
+      percentage = 100;
+      break;
   }
+
+  getElement('category-badge').textContent = 'WRITING';
+  getElement('progress-text').textContent = progressText;
+  getElement('progress-bar').style.width = percentage + '%';
 }
 
 function flattenQuestions(category, data) {
@@ -204,7 +265,7 @@ function flattenQuestions(category, data) {
 
 async function loadAllData() {
   try {
-    const results = await Promise.all([
+    const [grammar, reading, listening, writing, speaking] = await Promise.all([
       fetch('data/grammar.json').then(r => r.json()),
       fetch('data/reading.json').then(r => r.json()),
       fetch('data/listening.json').then(r => r.json()),
@@ -212,11 +273,11 @@ async function loadAllData() {
       fetch('data/speaking.json').then(r => r.json())
     ]);
 
-    quizData.GRAMMAR = results[0];
-    quizData.READING = results[1];
-    quizData.LISTENING = results[2];
-    quizData.WRITING = results[3];
-    quizData.SPEAKING = results[4];
+    quizData.GRAMMAR = grammar;
+    quizData.READING = reading;
+    quizData.LISTENING = listening;
+    quizData.WRITING = writing;
+    quizData.SPEAKING = speaking;
 
     return true;
   } catch (error) {
@@ -243,26 +304,28 @@ function renderCategorySelect() {
 
   categories.forEach(cat => {
     const data = quizData[cat.key];
-    let count, label;
+    let count = 0;
+    let label = '';
     
-    if (cat.key === 'GRAMMAR') {
-      count = data.length;
-      label = `${cat.name} - ${count} preguntas`;
-    } else if (cat.key === 'WRITING' || cat.key === 'SPEAKING') {
-      count = data.length;
-      label = count > 0 ? `${cat.name} - Guía de estudio` : `${cat.name} - Pronto disponible`;
-    } else {
+    if (cat.key === 'GRAMMAR' || cat.key === 'READING' || cat.key === 'LISTENING') {
       count = flattenQuestions(cat.key, data).length;
       label = `${cat.name} - ${count} preguntas`;
+    } else if (cat.key === 'WRITING' && data && data.groups) {
+      count = data.groups.length;
+      label = `${cat.name} - ${count} ejercicios`;
+    } else if (cat.key === 'SPEAKING') {
+      label = data.length > 0 ? `${cat.name} - Guía de estudio` : `${cat.name} - Pronto disponible`;
     }
 
     const btn = document.createElement('button');
     btn.className = 'category-btn';
     btn.innerHTML = `<strong>${cat.key}</strong><span>${label}</span>`;
-    if (count === 0) {
+    
+    if (count === 0 && cat.key !== 'SPEAKING') {
       btn.style.opacity = '0.5';
       btn.style.pointerEvents = 'none';
     }
+    
     btn.addEventListener('click', () => startFromCategory(cat.key));
     container.appendChild(btn);
   });
@@ -285,6 +348,27 @@ function startFromCategory(category) {
 function beginQuiz(category) {
   currentCategory = category;
   currentExerciseIndex = 0;
+  currentQuestionIndex = 0;
+  selectedOptionIndex = null;
+  score = { GRAMMAR: 0, READING: 0, LISTENING: 0, WRITING: 0, SPEAKING: 0 };
+  answeredQuestions.clear();
+  currentAudioSrc = null;
+  currentAudioElement = null;
+
+  if (category === 'WRITING') {
+    currentWritingGroup = shuffleArray([...quizData.WRITING.groups])[0];
+    writingResponses = [];
+    currentWritingStep = WRITING_STEPS.INSTRUCTIONS;
+    currentPreviewIndex = 0;
+    
+    getElement('category-select').classList.add('hidden');
+    getElement('quiz-view').classList.remove('hidden');
+    getElement('results-container').classList.add('hidden');
+    
+    logActivity('INICIO', `WRITING - Grupo: ${currentWritingGroup.id}`);
+    renderWritingStep();
+    return;
+  }
 
   let sourceData;
   if (category === 'GRAMMAR') {
@@ -296,15 +380,6 @@ function beginQuiz(category) {
       questionIndex: 0,
       isGuide: false
     }));
-  } else if (category === 'WRITING' || category === 'SPEAKING') {
-    sourceData = quizData[category];
-    allQuestions = sourceData.map((q, i) => ({
-      ...q,
-      category: category,
-      exerciseIndex: i,
-      questionIndex: 0,
-      isGuide: true
-    }));
   } else {
     sourceData = quizData[category];
     const flattened = flattenQuestions(category, sourceData);
@@ -312,9 +387,6 @@ function beginQuiz(category) {
   }
 
   shuffledQuestions = allQuestions.map((q, i) => {
-    if (q.isGuide) {
-      return { ...q, shuffledOptions: [], correctShuffledIndex: -1 };
-    }
     return {
       ...shuffleOptions(q),
       exerciseIndex: q.exerciseIndex,
@@ -322,13 +394,6 @@ function beginQuiz(category) {
       isGuide: false
     };
   });
-
-  currentQuestionIndex = 0;
-  selectedOptionIndex = null;
-  score = { GRAMMAR: 0, READING: 0, LISTENING: 0, WRITING: 0, SPEAKING: 0 };
-  answeredQuestions.clear();
-  currentAudioSrc = null;
-  currentAudioElement = null;
 
   getElement('category-select').classList.add('hidden');
   getElement('quiz-view').classList.remove('hidden');
@@ -339,80 +404,339 @@ function beginQuiz(category) {
   saveProgress();
 }
 
-function renderGuide(guide) {
+function renderWritingStep() {
+  const container = getElement('quiz-container');
+  container.classList.remove('fade-out');
+  void container.offsetWidth;
+  container.classList.add('fade-out');
+  setTimeout(() => {
+    container.classList.remove('fade-out');
+    container.style.animation = 'none';
+    void container.offsetWidth;
+    container.style.animation = 'fadeIn 0.5s ease';
+  }, 300);
+
+  updateWritingProgress();
+  getElement('audio-container').classList.add('hidden');
+  getElement('transcription-toggle').classList.add('hidden');
+  getElement('transcription-text').classList.add('hidden');
+  getElement('reading-text').classList.add('hidden');
+  getElement('feedback-container').classList.add('hidden');
+
   let html = '';
 
-  if (guide.title) {
-    html += `<h2 class="guide-title">${guide.title}</h2>`;
+  switch (currentWritingStep) {
+    case WRITING_STEPS.INSTRUCTIONS:
+      html = renderWritingInstructions();
+      break;
+    case WRITING_STEPS.TASK1_Q1:
+    case WRITING_STEPS.TASK1_Q2:
+    case WRITING_STEPS.TASK1_Q3:
+      const qIndex = currentWritingStep - 1;
+      html = renderWritingTask1(qIndex);
+      break;
+    case WRITING_STEPS.TASK2:
+      html = renderWritingTask2();
+      break;
+    case WRITING_STEPS.PREVIEW:
+      html = renderWritingPreview();
+      break;
   }
-
-  if (guide.sections) {
-    guide.sections.forEach(section => {
-      html += `<div class="guide-section">`;
-      
-      if (section.title) {
-        html += `<h3 class="guide-section-title">${section.title}</h3>`;
-      }
-
-      if (section.content) {
-        html += `<p class="guide-content">${section.content}</p>`;
-      }
-
-      if (section.examples) {
-        section.examples.forEach(example => {
-          html += `
-            <div class="guide-example">
-              <div class="guide-example-label">${example.label}</div>
-              <p class="guide-example-text">${example.text}</p>
-            </div>
-          `;
-        });
-      }
-
-      if (section.items) {
-        html += `<ul class="guide-list">`;
-        section.items.forEach(item => {
-          if (typeof item === 'string') {
-            html += `<li class="guide-list-item">${item}</li>`;
-          } else {
-            html += `
-              <li class="guide-list-item">
-                <strong>${item.name}</strong>
-                <p>${item.description}</p>
-              </li>
-            `;
-          }
-        });
-        html += `</ul>`;
-      }
-
-      html += `</div>`;
-    });
-  }
-
-  html += `
-    <div class="guide-navigation">
-      <button class="btn btn-primary" onclick="nextGuide()">
-        ${currentQuestionIndex < shuffledQuestions.length - 1 ? 'Siguiente' : 'Volver al inicio'}
-      </button>
-    </div>
-  `;
 
   getElement('question-text').innerHTML = '';
   getElement('options-container').innerHTML = html;
-  getElement('feedback-container').classList.add('hidden');
-  
-  updateProgressBar();
+
+  if (currentWritingStep === WRITING_STEPS.PREVIEW) {
+    getElement('controls').classList.remove('hidden');
+    getElement('check-btn').classList.add('hidden');
+    getElement('next-btn').classList.add('hidden');
+    getElement('restart-btn').classList.remove('hidden');
+    getElement('restart-btn').textContent = 'Enviar';
+    setupCarouselEvents();
+  } else {
+    getElement('controls').classList.remove('hidden');
+    getElement('check-btn').classList.add('hidden');
+    getElement('next-btn').classList.remove('hidden');
+    getElement('next-btn').textContent = 'Siguiente';
+    getElement('restart-btn').classList.add('hidden');
+  }
 }
 
-window.nextGuide = function() {
-  currentQuestionIndex++;
-  if (currentQuestionIndex >= shuffledQuestions.length) {
-    restartTest();
-  } else {
-    loadQuestion();
+function renderWritingInstructions() {
+  const instructions = quizData.WRITING.instructions;
+  return `
+    <div class="writing-instructions">
+      <div class="instructions-toggle">
+        <button id="toggle-instructions" class="btn-toggle">
+          Instrucciones <span class="toggle-icon">▼</span>
+        </button>
+      </div>
+      <div id="instructions-content" class="instructions-content">
+        <p>${instructions.replace(/\n/g, '<br>')}</p>
+      </div>
+    </div>
+    <script>
+      document.getElementById('toggle-instructions').addEventListener('click', function() {
+        const content = document.getElementById('instructions-content');
+        const icon = this.querySelector('.toggle-icon');
+        if (content.classList.contains('hidden')) {
+          content.classList.remove('hidden');
+          icon.textContent = '▲';
+        } else {
+          content.classList.add('hidden');
+          icon.textContent = '▼';
+        }
+      });
+    </script>
+  `;
+}
+
+function renderWritingTask1(qIndex) {
+  const question = currentWritingGroup.task1[qIndex];
+  const existingResponse = writingResponses[qIndex] || '';
+  const charCount = existingResponse.length;
+  const showCounter = charCount > TASK1_CHAR_LIMIT * 0.9;
+  
+  return `
+    <div class="writing-question">
+      <p class="writing-question-text">${question.text}</p>
+      <textarea 
+        id="writing-textarea" 
+        class="writing-textarea"
+        placeholder="Escribe tu respuesta aquí..."
+        maxlength="${TASK1_CHAR_LIMIT}"
+      >${existingResponse}</textarea>
+      <div class="char-counter ${showCounter ? 'visible' : ''}">
+        <span id="char-count">${charCount}</span> / ${TASK1_CHAR_LIMIT}
+      </div>
+    </div>
+    <script>
+      const textarea = document.getElementById('writing-textarea');
+      const counter = document.getElementById('char-count');
+      const counterContainer = document.querySelector('.char-counter');
+      
+      textarea.addEventListener('input', function() {
+        const count = this.value.length;
+        counter.textContent = count;
+        counterContainer.classList.toggle('visible', count > ${TASK1_CHAR_LIMIT * 0.9});
+      });
+      
+      textarea.focus();
+    </script>
+  `;
+}
+
+function renderWritingTask2() {
+  const task2 = currentWritingGroup.task2;
+  const existingResponse = writingResponses[3] || '';
+  const charCount = existingResponse.length;
+  const showCounter = charCount > TASK2_CHAR_LIMIT * 0.9;
+  
+  return `
+    <div class="writing-question">
+      <p class="writing-question-text">${task2.topic}</p>
+      <p class="writing-task-prompt">${task2.prompt}</p>
+      <textarea 
+        id="writing-textarea" 
+        class="writing-textarea writing-textarea-large"
+        placeholder="Escribe tu ensayo aquí..."
+        maxlength="${TASK2_CHAR_LIMIT}"
+      >${existingResponse}</textarea>
+      <div class="char-counter ${showCounter ? 'visible' : ''}">
+        <span id="char-count">${charCount}</span> / ${TASK2_CHAR_LIMIT}
+      </div>
+    </div>
+    <script>
+      const textarea = document.getElementById('writing-textarea');
+      const counter = document.getElementById('char-count');
+      const counterContainer = document.querySelector('.char-counter');
+      
+      textarea.addEventListener('input', function() {
+        const count = this.value.length;
+        counter.textContent = count;
+        counterContainer.classList.toggle('visible', count > ${TASK2_CHAR_LIMIT * 0.9});
+      });
+      
+      textarea.focus();
+    </script>
+  `;
+}
+
+function renderWritingPreview() {
+  currentPreviewIndex = 0;
+  return renderCarouselSlide();
+}
+
+function renderCarouselSlide() {
+  const task1 = currentWritingGroup.task1;
+  const task2 = currentWritingGroup.task2;
+  
+  const slides = [
+    {
+      title: `Task 1: Pregunta 1 de 3`,
+      question: task1[0].text,
+      response: writingResponses[0] || 'Sin respuesta'
+    },
+    {
+      title: `Task 1: Pregunta 2 de 3`,
+      question: task1[1].text,
+      response: writingResponses[1] || 'Sin respuesta'
+    },
+    {
+      title: `Task 1: Pregunta 3 de 3`,
+      question: task1[2].text,
+      response: writingResponses[2] || 'Sin respuesta'
+    },
+    {
+      title: `Task 2: Ensayo`,
+      question: `${task2.topic}\n\n${task2.prompt}`,
+      response: writingResponses[3] || 'Sin respuesta'
+    }
+  ];
+
+  const slide = slides[currentPreviewIndex];
+  
+  return `
+    <div class="carousel-container">
+      <h3 class="carousel-title">Revisa tus respuestas</h3>
+      <div class="carousel-slide">
+        <div class="slide-header">${slide.title}</div>
+        <div class="slide-question">${slide.question.replace(/\n/g, '<br>')}</div>
+        <div class="slide-response">${slide.response.replace(/\n/g, '<br>')}</div>
+      </div>
+      <div class="carousel-nav">
+        <button id="carousel-prev" class="carousel-btn">◀</button>
+        <span class="carousel-indicators">
+          ${slides.map((_, i) => `<span class="indicator ${i === currentPreviewIndex ? 'active' : ''}" data-index="${i}"></span>`).join('')}
+        </span>
+        <button id="carousel-next" class="carousel-btn">▶</button>
+      </div>
+      <div class="carousel-hint">Usa las flechas ← → o las teclas A/D para navegar</div>
+    </div>
+  `;
+}
+
+function setupCarouselEvents() {
+  const prevBtn = document.getElementById('carousel-prev');
+  const nextBtn = document.getElementById('carousel-next');
+  
+  if (prevBtn) {
+    prevBtn.addEventListener('click', () => navigateCarousel(-1));
   }
-};
+  if (nextBtn) {
+    nextBtn.addEventListener('click', () => navigateCarousel(1));
+  }
+
+  document.addEventListener('keydown', handleCarouselKeydown);
+}
+
+function handleCarouselKeydown(e) {
+  if (currentCategory !== 'WRITING' || currentWritingStep !== WRITING_STEPS.PREVIEW) {
+    document.removeEventListener('keydown', handleCarouselKeydown);
+    return;
+  }
+  
+  if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') {
+    navigateCarousel(-1);
+  } else if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') {
+    navigateCarousel(1);
+  }
+}
+
+function navigateCarousel(direction) {
+  const totalSlides = 4;
+  currentPreviewIndex = (currentPreviewIndex + direction + totalSlides) % totalSlides;
+  
+  const slideContainer = document.querySelector('.carousel-slide');
+  const indicators = document.querySelectorAll('.indicator');
+  const titleEl = document.querySelector('.carousel-title');
+  
+  if (slideContainer) {
+    const task1 = currentWritingGroup.task1;
+    const task2 = currentWritingGroup.task2;
+    
+    const slides = [
+      { title: `Task 1: Pregunta 1 de 3`, question: task1[0].text, response: writingResponses[0] || 'Sin respuesta' },
+      { title: `Task 1: Pregunta 2 de 3`, question: task1[1].text, response: writingResponses[1] || 'Sin respuesta' },
+      { title: `Task 1: Pregunta 3 de 3`, question: task1[2].text, response: writingResponses[2] || 'Sin respuesta' },
+      { title: `Task 2: Ensayo`, question: `${task2.topic}\n\n${task2.prompt}`, response: writingResponses[3] || 'Sin respuesta' }
+    ];
+    
+    const slide = slides[currentPreviewIndex];
+    slideContainer.innerHTML = `
+      <div class="slide-header">${slide.title}</div>
+      <div class="slide-question">${slide.question.replace(/\n/g, '<br>')}</div>
+      <div class="slide-response">${slide.response.replace(/\n/g, '<br>')}</div>
+    `;
+    
+    indicators.forEach((ind, i) => {
+      ind.classList.toggle('active', i === currentPreviewIndex);
+    });
+  }
+}
+
+function nextWritingStep() {
+  if (currentWritingStep === WRITING_STEPS.INSTRUCTIONS) {
+    currentWritingStep = WRITING_STEPS.TASK1_Q1;
+    renderWritingStep();
+    return;
+  }
+
+  if (currentWritingStep >= WRITING_STEPS.TASK1_Q1 && currentWritingStep <= WRITING_STEPS.TASK1_Q3) {
+    const textarea = document.getElementById('writing-textarea');
+    const responseIndex = currentWritingStep - 1;
+    writingResponses[responseIndex] = textarea ? textarea.value : '';
+    
+    logWritingResponse(responseIndex + 1, 1, writingResponses[responseIndex]);
+    
+    if (currentWritingStep < WRITING_STEPS.TASK1_Q3) {
+      currentWritingStep++;
+    } else {
+      currentWritingStep = WRITING_STEPS.TASK2;
+    }
+    renderWritingStep();
+    return;
+  }
+
+  if (currentWritingStep === WRITING_STEPS.TASK2) {
+    const textarea = document.getElementById('writing-textarea');
+    writingResponses[3] = textarea ? textarea.value : '';
+    logWritingResponse(1, 2, writingResponses[3]);
+    currentWritingStep = WRITING_STEPS.PREVIEW;
+    renderWritingStep();
+    return;
+  }
+}
+
+async function submitWritingResponses() {
+  logActivity('FIN', `WRITING - Grupo: ${currentWritingGroup.id} - Completado`);
+  
+  for (let i = 0; i < writingResponses.length; i++) {
+    await logWritingResponse(i < 3 ? i + 1 : 1, i < 3 ? 1 : 2, writingResponses[i]);
+  }
+
+  showWritingResults();
+}
+
+function showWritingResults() {
+  getElement('quiz-view').classList.add('hidden');
+  getElement('results-container').classList.remove('hidden');
+
+  getElement('score-display').textContent = '¡Completado!';
+  
+  const breakdown = getElement('results-breakdown');
+  breakdown.innerHTML = `
+    <div class="result-category">
+      <span class="result-category-name">WRITING</span>
+      <span class="result-category-score">Grupo ${currentWritingGroup.id}</span>
+    </div>
+    <p style="color: #888; font-size: 0.9rem; margin-top: 15px;">
+      Tus respuestas han sido guardadas exitosamente.
+    </p>
+  `;
+
+  getElement('email-btn').classList.add('hidden');
+}
 
 function loadQuestion() {
   const question = shuffledQuestions[currentQuestionIndex];
@@ -433,12 +757,6 @@ function loadQuestion() {
   getElement('transcription-toggle').classList.add('hidden');
   getElement('transcription-text').classList.add('hidden');
   getElement('reading-text').classList.add('hidden');
-
-  if (question.isGuide) {
-    renderGuide(question);
-    getElement('controls').classList.add('hidden');
-    return;
-  }
 
   getElement('controls').classList.remove('hidden');
 
@@ -499,6 +817,7 @@ function loadQuestion() {
   getElement('check-btn').classList.remove('hidden');
   getElement('next-btn').classList.add('hidden');
   getElement('restart-btn').classList.add('hidden');
+  getElement('restart-btn').textContent = 'Reiniciar Pregunta';
 
   selectedOptionIndex = null;
   updateProgressBar();
@@ -564,6 +883,11 @@ function checkAnswer() {
 }
 
 function nextQuestion() {
+  if (currentCategory === 'WRITING') {
+    nextWritingStep();
+    return;
+  }
+
   currentQuestionIndex++;
 
   if (currentQuestionIndex >= shuffledQuestions.length) {
@@ -574,6 +898,12 @@ function nextQuestion() {
 }
 
 function restartQuestion() {
+  if (currentCategory === 'WRITING') {
+    if (currentWritingStep === WRITING_STEPS.PREVIEW) {
+      submitWritingResponses();
+    }
+    return;
+  }
   loadQuestion();
 }
 
@@ -590,17 +920,10 @@ function showResults() {
   const breakdown = getElement('results-breakdown');
   breakdown.innerHTML = '';
 
-  const categories = ['GRAMMAR', 'READING', 'LISTENING', 'WRITING', 'SPEAKING'];
+  const categories = ['GRAMMAR', 'READING', 'LISTENING'];
   categories.forEach(cat => {
-    if (quizData[cat].length > 0 || score[cat] > 0) {
-      let count;
-      if (cat === 'GRAMMAR') {
-        count = quizData[cat].length;
-      } else if (cat === 'WRITING' || cat === 'SPEAKING') {
-        count = quizData[cat].length;
-      } else {
-        count = flattenQuestions(cat, quizData[cat]).length;
-      }
+    if (quizData[cat] && quizData[cat].length > 0) {
+      const count = flattenQuestions(cat, quizData[cat]).length;
       if (count > 0) {
         const div = document.createElement('div');
         div.className = 'result-category';
@@ -632,8 +955,6 @@ Desglose por categoría:
 - GRAMMAR: ${score.GRAMMAR}/${quizData.GRAMMAR.length}
 - READING: ${score.READING}/${flattenQuestions('READING', quizData.READING).length}
 - LISTENING: ${score.LISTENING}/${flattenQuestions('LISTENING', quizData.LISTENING).length}
-- WRITING: ${score.WRITING}/${flattenQuestions('WRITING', quizData.WRITING).length}
-- SPEAKING: ${score.SPEAKING}/${flattenQuestions('SPEAKING', quizData.SPEAKING).length}
 
 ---
 Enviado desde Your English World Quiz
@@ -653,7 +974,12 @@ function restartTest() {
   currentExerciseIndex = 0;
   currentAudioSrc = null;
   currentAudioElement = null;
+  currentWritingGroup = null;
+  writingResponses = [];
+  currentWritingStep = 0;
+  currentPreviewIndex = 0;
 
+  getElement('email-btn').classList.remove('hidden');
   getElement('results-container').classList.add('hidden');
   renderCategorySelect();
 }
@@ -666,7 +992,7 @@ async function continueFromSaved() {
     score = saved.score;
     answeredQuestions = new Set(saved.answeredQuestions);
 
-    if (currentCategory) {
+    if (currentCategory && currentCategory !== 'WRITING') {
       let sourceData;
       if (currentCategory === 'GRAMMAR') {
         sourceData = quizData.GRAMMAR;
@@ -774,7 +1100,14 @@ function goHome() {
   currentExerciseIndex = 0;
   currentAudioSrc = null;
   currentAudioElement = null;
+  currentWritingGroup = null;
+  writingResponses = [];
+  currentWritingStep = 0;
+  currentPreviewIndex = 0;
 
+  document.removeEventListener('keydown', handleCarouselKeydown);
+
+  getElement('email-btn').classList.remove('hidden');
   getElement('quiz-view').classList.add('hidden');
   getElement('results-container').classList.add('hidden');
   renderCategorySelect();
