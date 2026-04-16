@@ -17,7 +17,12 @@ let currentExerciseIndex = 0;
 let currentAudioSrc = null;
 let currentAudioElement = null;
 
+let currentUser = null;
+let pendingCategory = null;
+
 const letters = ['A', 'B', 'C', 'D'];
+
+const APPS_SCRIPT_URL = 'YOUR_GOOGLE_APPS_SCRIPT_URL';
 
 function shuffleArray(array) {
   const shuffled = [...array];
@@ -62,6 +67,88 @@ function clearProgress() {
 
 function getElement(id) {
   return document.getElementById(id);
+}
+
+function saveUser(user) {
+  localStorage.setItem('metQuizUser', JSON.stringify(user));
+  currentUser = user;
+  updateUserDisplay();
+}
+
+function loadUser() {
+  const saved = localStorage.getItem('metQuizUser');
+  if (saved) {
+    currentUser = JSON.parse(saved);
+    return currentUser;
+  }
+  return null;
+}
+
+function updateUserDisplay() {
+  if (currentUser) {
+    getElement('user-info').classList.remove('hidden');
+    getElement('user-name').textContent = currentUser.name;
+    getElement('quiz-user-name').textContent = currentUser.name;
+  } else {
+    getElement('user-info').classList.add('hidden');
+    getElement('quiz-user-name').textContent = '';
+  }
+}
+
+async function logActivity(action, detail = '') {
+  if (!currentUser) return;
+  
+  const data = {
+    timestamp: new Date().toISOString(),
+    name: currentUser.name,
+    email: currentUser.email,
+    category: currentCategory || '',
+    action: action,
+    detail: detail
+  };
+
+  try {
+    await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+  } catch (error) {
+    console.log('Activity logged locally:', data);
+  }
+}
+
+function showRegistrationModal() {
+  getElement('registration-modal').classList.remove('hidden');
+  getElement('reg-name').value = '';
+  getElement('reg-email').value = '';
+  getElement('reg-name').focus();
+}
+
+function hideRegistrationModal() {
+  getElement('registration-modal').classList.add('hidden');
+}
+
+function showHelpModal() {
+  getElement('help-modal').classList.remove('hidden');
+  getElement('help-text').value = '';
+  getElement('help-text').focus();
+}
+
+function hideHelpModal() {
+  getElement('help-modal').classList.add('hidden');
+}
+
+function showChangeUserModal() {
+  getElement('change-user-modal').classList.remove('hidden');
+  getElement('change-name').value = currentUser?.name || '';
+  getElement('change-email').value = currentUser?.email || '';
+  getElement('change-name').focus();
+}
+
+function hideChangeUserModal() {
+  getElement('change-user-modal').classList.add('hidden');
 }
 
 function getAudioTitle(exerciseIndex) {
@@ -185,6 +272,17 @@ function renderCategorySelect() {
 }
 
 function startFromCategory(category) {
+  pendingCategory = category;
+  
+  if (!currentUser) {
+    showRegistrationModal();
+    return;
+  }
+  
+  beginQuiz(category);
+}
+
+function beginQuiz(category) {
   currentCategory = category;
   currentExerciseIndex = 0;
 
@@ -236,6 +334,7 @@ function startFromCategory(category) {
   getElement('quiz-view').classList.remove('hidden');
   getElement('results-container').classList.add('hidden');
 
+  logActivity('INICIO', `Categoría: ${category}`);
   loadQuestion();
   saveProgress();
 }
@@ -514,6 +613,7 @@ function showResults() {
     }
   });
 
+  logActivity('FIN', `Resultado: ${percentage}% (${totalScore}/${totalQuestions})`);
   clearProgress();
 }
 
@@ -609,6 +709,58 @@ function initEventListeners() {
   getElement('restart-test-btn').addEventListener('click', restartTest);
   getElement('continue-btn').addEventListener('click', continueFromSaved);
   getElement('home-btn').addEventListener('click', goHome);
+
+  getElement('registration-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = getElement('reg-name').value.trim();
+    const email = getElement('reg-email').value.trim();
+    if (name && email) {
+      saveUser({ name, email });
+      hideRegistrationModal();
+      logActivity('REGISTRO', `Nuevo usuario: ${name}`);
+      if (pendingCategory) {
+        beginQuiz(pendingCategory);
+        pendingCategory = null;
+      }
+    }
+  });
+
+  getElement('help-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const text = getElement('help-text').value.trim();
+    if (text) {
+      logActivity('CONSULTA', text);
+      hideHelpModal();
+      alert('¡Consulta enviada! Te responderemos pronto.');
+    }
+  });
+
+  getElement('help-cancel').addEventListener('click', hideHelpModal);
+  getElement('help-btn-home').addEventListener('click', showHelpModal);
+  getElement('help-btn-quiz').addEventListener('click', showHelpModal);
+
+  getElement('change-user-btn').addEventListener('click', showChangeUserModal);
+  
+  getElement('change-user-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = getElement('change-name').value.trim();
+    const email = getElement('change-email').value.trim();
+    if (name && email) {
+      saveUser({ name, email });
+      hideChangeUserModal();
+      logActivity('CAMBIO_USUARIO', `Usuario cambió a: ${name}`);
+    }
+  });
+
+  getElement('change-cancel').addEventListener('click', hideChangeUserModal);
+
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        overlay.classList.add('hidden');
+      }
+    });
+  });
 }
 
 function goHome() {
@@ -629,6 +781,8 @@ function goHome() {
 }
 
 async function init() {
+  loadUser();
+  updateUserDisplay();
   initEventListeners();
 
   const loaded = await loadAllData();

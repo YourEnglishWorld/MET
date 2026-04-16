@@ -5,11 +5,81 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MET Quiz - Your English World</title>
   <link rel="stylesheet" href="styles.css">
+  <!-- Google Analytics - Replace G-XXXXXXXXXX with actual Measurement ID -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-XXXXXXXXXX');
+  </script>
 </head>
 <body>
+  <div class="modal-overlay hidden" id="registration-modal">
+    <div class="modal">
+      <h2>Antes de comenzar</h2>
+      <p class="modal-subtitle">Ingresa tus datos para continuar</p>
+      <form id="registration-form">
+        <div class="form-group">
+          <label for="reg-name">Nombre</label>
+          <input type="text" id="reg-name" required placeholder="Tu nombre">
+        </div>
+        <div class="form-group">
+          <label for="reg-email">Correo electrónico</label>
+          <input type="email" id="reg-email" required placeholder="tu@correo.com">
+        </div>
+        <button type="submit" class="btn btn-primary">Comenzar</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay hidden" id="help-modal">
+    <div class="modal">
+      <h2>¿Necesitas ayuda?</h2>
+      <p class="modal-subtitle">¿Tienes alguna duda o consulta? Escríbela aquí y te responderemos pronto.</p>
+      <form id="help-form">
+        <div class="form-group">
+          <textarea id="help-text" rows="5" placeholder="Escribe tu consulta..."></textarea>
+        </div>
+        <div class="modal-buttons">
+          <button type="button" class="btn btn-secondary" id="help-cancel">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Enviar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay hidden" id="change-user-modal">
+    <div class="modal">
+      <h2>Cambiar usuario</h2>
+      <p class="modal-subtitle">Ingresa tus datos</p>
+      <form id="change-user-form">
+        <div class="form-group">
+          <label for="change-name">Nombre</label>
+          <input type="text" id="change-name" required placeholder="Tu nombre">
+        </div>
+        <div class="form-group">
+          <label for="change-email">Correo electrónico</label>
+          <input type="email" id="change-email" required placeholder="tu@correo.com">
+        </div>
+        <div class="modal-buttons">
+          <button type="button" class="btn btn-secondary" id="change-cancel">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div class="container">
     <div id="category-select" class="hidden">
       <header>
+        <div id="header-top">
+          <div id="user-info" class="hidden">
+            <span id="user-name"></span>
+            <button id="change-user-btn" class="btn-link">cambiar</button>
+          </div>
+          <button id="help-btn-home" class="btn-icon" title="Ayuda">?</button>
+        </div>
         <h1>Your English World</h1>
         <p class="subtitle">MET Practice Test</p>
       </header>
@@ -30,7 +100,11 @@
         <div id="progress-bar-container">
           <div id="progress-bar"></div>
         </div>
-        <button id="home-btn" class="btn btn-small">Home</button>
+        <div id="quiz-header-right">
+          <span id="quiz-user-name"></span>
+          <button id="help-btn-quiz" class="btn-icon" title="Ayuda">?</button>
+          <button id="home-btn" class="btn btn-small">Home</button>
+        </div>
       </div>
 
       <div id="quiz-container">
