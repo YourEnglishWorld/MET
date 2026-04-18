@@ -343,6 +343,10 @@ function beginQuiz(section) {
   currentAudioElement = null;
 
   if (section === 'WRITING') {
+    if (!quizData.WRITING || !quizData.WRITING.groups || quizData.WRITING.groups.length === 0) {
+      alert('La sección de Writing aún no tiene contenido.');
+      return;
+    }
     writingGroup = shuffleArray([...quizData.WRITING.groups])[0];
     writingResponses = [];
     currentWritingStep = WRITING_STEPS.TASK1_Q1;
@@ -1145,6 +1149,8 @@ function initEventListeners() {
 
 function goHome() {
   clearProgress();
+  localStorage.removeItem('metQuizUser');
+  currentUser = null;
   currentQuestionIndex = 0;
   selectedOptionIndex = null;
   score = { WRITING: 0, LISTENING: 0, READING_AND_GRAMMAR: 0, SPEAKING: 0 };
@@ -1165,6 +1171,7 @@ function goHome() {
   getElement('quiz-view').classList.add('hidden');
   getElement('results-container').classList.add('hidden');
   getElement('section-instructions-panel').classList.add('hidden');
+  getElement('user-info').classList.add('hidden');
   renderCategorySelect();
 }
 
