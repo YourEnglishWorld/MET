@@ -96,12 +96,20 @@ function loadUser() {
   return null;
 }
 
+function isValidName(name) {
+  if (!name || name.length < 2) return false;
+  const cleanName = name.trim();
+  if (/^\d+$/.test(cleanName)) return false;
+  if (/^(.)\1+$/i.test(cleanName)) return false;
+  return true;
+}
+
 function updateUserDisplay() {
   if (currentUser) {
     getElement('user-info').classList.remove('hidden');
     const displayName = currentUser.name.length > 12 ? currentUser.name.substring(0, 12) + '...' : currentUser.name;
     getElement('user-name').textContent = displayName;
-    getElement('quiz-user-name').textContent = displayName;
+    getElement('quiz-user-name').textContent = 'Hi ' + currentUser.name + '!';
   } else {
     getElement('user-info').classList.add('hidden');
     getElement('quiz-user-name').textContent = '';
@@ -938,12 +946,24 @@ function previousQuestion() {
 }
 
 function restartQuestion() {
-  if (currentSection === 'WRITING') {
-    if (currentWritingStep === WRITING_STEPS.PREVIEW) {
-      submitWritingResponses();
-    }
+  if (!confirm('Are you sure? Perderás tu progreso en esta sección.')) {
     return;
   }
+  
+  if (currentSection === 'WRITING') {
+    writingGroup = shuffleArray([...quizData.WRITING.groups])[0];
+    writingResponses = [];
+    currentWritingStep = WRITING_STEPS.TASK1_Q1;
+    currentPreviewIndex = 0;
+    renderWritingStep();
+    updatePrevButtonVisibility();
+    return;
+  }
+  
+  currentQuestionIndex = 0;
+  selectedOptionIndex = null;
+  score[currentSection] = 0;
+  answeredQuestions.clear();
   loadQuestion();
 }
 
@@ -1106,7 +1126,34 @@ function initEventListeners() {
   getElement('registration-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const name = getElement('reg-name').value.trim();
-    const email = getElement('reg-email').value.trim();
+    let email = getElement('reg-email').value.trim();
+    
+    if (!isValidName(name)) {
+      alert('Por favor ingresa un nombre válido (mínimo 2 caracteres)');
+      return;
+    }
+    
+    if (!email) {
+      alert('Por favor ingresa un correo electrónico');
+      return;
+    }
+    
+    if (email === 'Otro') {
+      const customDomain = prompt('Ingresa tu dominio de correo (ej: empresa.com)');
+      if (customDomain) {
+        const username = prompt('Ingresa tu nombre de usuario');
+        if (username) {
+          email = username + '@' + customDomain;
+        } else {
+          return;
+        }
+      } else {
+        return;
+      }
+    } else if (!email.includes('@')) {
+      email = email + '@gmail.com';
+    }
+    
     if (name && email) {
       saveUser({ name, email });
       hideRegistrationModal();
@@ -1135,7 +1182,34 @@ function initEventListeners() {
   getElement('change-user-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const name = getElement('change-name').value.trim();
-    const email = getElement('change-email').value.trim();
+    let email = getElement('change-email').value.trim();
+    
+    if (!isValidName(name)) {
+      alert('Por favor ingresa un nombre válido (mínimo 2 caracteres)');
+      return;
+    }
+    
+    if (!email) {
+      alert('Por favor ingresa un correo electrónico');
+      return;
+    }
+    
+    if (email === 'Otro') {
+      const customDomain = prompt('Ingresa tu dominio de correo (ej: empresa.com)');
+      if (customDomain) {
+        const username = prompt('Ingresa tu nombre de usuario');
+        if (username) {
+          email = username + '@' + customDomain;
+        } else {
+          return;
+        }
+      } else {
+        return;
+      }
+    } else if (!email.includes('@')) {
+      email = email + '@gmail.com';
+    }
+    
     if (name && email) {
       saveUser({ name, email });
       hideChangeUserModal();

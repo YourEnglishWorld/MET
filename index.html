@@ -17,11 +17,13 @@
 <body>
   <!-- Datalist for email autocomplete -->
   <datalist id="email-domains">
-    <option value="@gmail.com">
-    <option value="@hotmail.com">
-    <option value="@outlook.com">
-    <option value="@yahoo.com">
-    <option value="@icloud.com">
+    <option value="gmail.com">
+    <option value="hotmail.com">
+    <option value="outlook.com">
+    <option value="yahoo.com">
+    <option value="yahoo.es">
+    <option value="icloud.com">
+    <option value="Otro">
   </datalist>
 
   <div class="modal-overlay hidden" id="back-modal">
@@ -47,7 +49,7 @@
         </div>
         <div class="form-group">
           <label for="reg-email">Correo electrónico</label>
-          <input type="email" id="reg-email" required placeholder="tu@correo.com" list="email-domains">
+          <input type="text" id="reg-email" required placeholder="tu email" list="email-domains">
         </div>
         <button type="submit" class="btn btn-primary">Comenzar</button>
       </form>
@@ -81,7 +83,7 @@
         </div>
         <div class="form-group">
           <label for="change-email">Correo electrónico</label>
-          <input type="email" id="change-email" required placeholder="tu@correo.com" list="email-domains">
+          <input type="text" id="change-email" required placeholder="tu email" list="email-domains">
         </div>
         <div class="modal-buttons">
           <button type="button" class="btn btn-secondary" id="change-cancel">Cancelar</button>
@@ -93,6 +95,7 @@
 
   <div class="container">
     <div id="category-select" class="hidden">
+      <img src="data/images/yew logo png.png" alt="Your English World" id="home-logo-top">
       <header>
         <div id="header-top">
           <div id="user-info" class="hidden">
@@ -100,15 +103,12 @@
           </div>
           <button id="help-btn-home" class="btn-icon" title="Ayuda">?</button>
         </div>
-        <h1>Your English World</h1>
         <p class="subtitle">MET Practice Test</p>
       </header>
       <h2>Selecciona una sección</h2>
       <div id="category-buttons"></div>
       <button id="continue-btn" class="btn btn-secondary hidden">Continuar desde donde estaba</button>
-      <footer id="home-footer">
-        <img src="data/images/yew logo png.png" alt="Your English World" id="home-logo">
-      </footer>
+      <footer id="home-footer"></footer>
     </div>
 
     <div id="quiz-view" class="hidden">
@@ -158,7 +158,7 @@
     </div>
 
     <div id="results-container" class="hidden">
-      <h2>¡Test Completado!</h2>
+      <h2>¡Test completado!</h2>
       <p id="score-display"></p>
       <div id="results-breakdown"></div>
       <button id="email-btn" class="btn btn-primary">Enviar Resultados por Email</button>
