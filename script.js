@@ -438,10 +438,13 @@ function renderWritingStep() {
 
   switch (currentWritingStep) {
     case WRITING_STEPS.TASK1_Q1:
+      html = renderWritingTask1(0);
+      break;
     case WRITING_STEPS.TASK1_Q2:
+      html = renderWritingTask1(1);
+      break;
     case WRITING_STEPS.TASK1_Q3:
-      const qIndex = currentWritingStep - 1;
-      html = renderWritingTask1(qIndex);
+      html = renderWritingTask1(2);
       break;
     case WRITING_STEPS.TASK2:
       html = renderWritingTask2();
@@ -453,11 +456,13 @@ function renderWritingStep() {
 
   getElement('question-text').innerHTML = '';
   getElement('options-container').innerHTML = html;
+  updatePrevButtonVisibility();
 
   if (currentWritingStep === WRITING_STEPS.PREVIEW) {
     getElement('controls').classList.remove('hidden');
     getElement('check-btn').classList.add('hidden');
     getElement('next-btn').classList.add('hidden');
+    getElement('prev-btn').classList.add('hidden');
     getElement('restart-btn').classList.remove('hidden');
     getElement('restart-btn').textContent = 'Enviar';
     setupCarouselEvents();
@@ -466,6 +471,7 @@ function renderWritingStep() {
     getElement('check-btn').classList.add('hidden');
     getElement('next-btn').classList.remove('hidden');
     getElement('next-btn').textContent = 'Siguiente';
+    getElement('prev-btn').classList.remove('hidden');
     getElement('restart-btn').classList.add('hidden');
   }
 }
@@ -518,7 +524,7 @@ function renderWritingTask2() {
       <textarea 
         id="writing-textarea" 
         class="writing-textarea writing-textarea-large"
-        placeholder="Escribe tu ensayo aquí..."
+        placeholder="Escribe tu essay aquí..."
         maxlength="${TASK2_CHAR_LIMIT}"
       >${existingResponse}</textarea>
       <div class="char-counter ${showCounter ? 'visible' : ''}">
