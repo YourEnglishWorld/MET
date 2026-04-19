@@ -701,6 +701,11 @@ h1 {
 
 #user-name {
   font-weight: 500;
+  text-decoration: underline;
+}
+
+.user-link:hover {
+  color: #333;
 }
 
 .user-link {
@@ -712,10 +717,6 @@ h1 {
   text-overflow: ellipsis;
   white-space: nowrap;
   display: inline-block;
-}
-
-.user-link:hover {
-  color: #764ba2;
 }
 
 .btn-link {
@@ -772,6 +773,11 @@ h1 {
   font-size: 0.85rem;
   color: #666;
   font-weight: 500;
+}
+
+#user-name {
+  color: #333;
+  text-decoration: underline;
 }
 
 /* Modals */

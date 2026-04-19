@@ -648,6 +648,7 @@ function setupCarouselEvents() {
 
 function editCurrentResponse() {
   document.removeEventListener('keydown', handleCarouselKeydown);
+  saveCurrentWritingResponse();
   
   switch (currentPreviewIndex) {
     case 0:
@@ -725,7 +726,26 @@ function updateCarouselDisplay() {
   }
 }
 
-function nextWritingStep() {
+function saveCurrentWritingResponse() {
+  const textarea = document.getElementById('writing-textarea');
+  if (!textarea) return;
+  
+  const value = textarea.value;
+  
+  if (currentWritingStep >= WRITING_STEPS.TASK1_Q1 && currentWritingStep <= WRITING_STEPS.TASK1_Q3) {
+    writingResponses[currentWritingStep] = value;
+    logWritingResponse(currentWritingStep + 1, 1, value);
+  } else if (currentWritingStep === WRITING_STEPS.TASK2) {
+    writingResponses[3] = value;
+    logWritingResponse(1, 2, value);
+  }
+}
+
+function nextSectionStep() {
+  if (currentSection !== 'WRITING') return;
+  
+  saveCurrentWritingResponse();
+  
   if (currentWritingStep === WRITING_STEPS.INSTRUCTIONS) {
     currentWritingStep = WRITING_STEPS.TASK1_Q1;
     renderWritingStep();
@@ -733,12 +753,6 @@ function nextWritingStep() {
   }
 
   if (currentWritingStep >= WRITING_STEPS.TASK1_Q1 && currentWritingStep <= WRITING_STEPS.TASK1_Q3) {
-    const textarea = document.getElementById('writing-textarea');
-    const responseIndex = currentWritingStep;
-    writingResponses[responseIndex] = textarea ? textarea.value : '';
-    
-    logWritingResponse(responseIndex + 1, 1, writingResponses[responseIndex]);
-    
     if (currentWritingStep < WRITING_STEPS.TASK1_Q3) {
       currentWritingStep++;
     } else {
@@ -749,9 +763,6 @@ function nextWritingStep() {
   }
 
   if (currentWritingStep === WRITING_STEPS.TASK2) {
-    const textarea = document.getElementById('writing-textarea');
-    writingResponses[3] = textarea ? textarea.value : '';
-    logWritingResponse(1, 2, writingResponses[3]);
     currentWritingStep = WRITING_STEPS.PREVIEW;
     renderWritingStep();
     return;
@@ -934,7 +945,7 @@ function checkAnswer() {
 
 function nextQuestion() {
   if (currentSection === 'WRITING') {
-    nextWritingStep();
+    nextSectionStep();
     return;
   }
 
