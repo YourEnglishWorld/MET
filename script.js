@@ -734,7 +734,7 @@ function nextWritingStep() {
 
   if (currentWritingStep >= WRITING_STEPS.TASK1_Q1 && currentWritingStep <= WRITING_STEPS.TASK1_Q3) {
     const textarea = document.getElementById('writing-textarea');
-    const responseIndex = currentWritingStep - 1;
+    const responseIndex = currentWritingStep;
     writingResponses[responseIndex] = textarea ? textarea.value : '';
     
     logWritingResponse(responseIndex + 1, 1, writingResponses[responseIndex]);
@@ -1132,7 +1132,13 @@ function initEventListeners() {
   getElement('check-btn').addEventListener('click', checkAnswer);
   getElement('next-btn').addEventListener('click', nextQuestion);
   getElement('prev-btn').addEventListener('click', previousQuestion);
-  getElement('restart-btn').addEventListener('click', restartQuestion);
+  getElement('restart-btn').addEventListener('click', () => {
+    if (getElement('restart-btn').textContent === 'Enviar') {
+      submitWritingResponses();
+    } else {
+      restartQuestion();
+    }
+  });
   getElement('email-btn').addEventListener('click', sendEmail);
   getElement('restart-test-btn').addEventListener('click', restartTest);
   getElement('continue-btn').addEventListener('click', continueFromSaved);
