@@ -59,7 +59,7 @@
           <input type="text" id="reg-name" required placeholder="Tu nombre">
         </div>
         <div class="form-group">
-          <label for="reg-email-username">Correo electrónico</label>
+          <label for="reg-email-username">Correo</label>
           <div class="email-input-group">
             <input type="text" id="reg-email-username" required placeholder="tu nombre de usuario" list="email-username-suggestions">
             <span class="email-at">@</span>
@@ -79,8 +79,8 @@
 
   <div class="modal-overlay hidden" id="help-modal">
     <div class="modal">
-      <h2>¿Necesitas ayuda?</h2>
-      <p class="modal-subtitle">¿Tienes alguna duda o consulta? Escríbela aquí y te responderemos pronto.</p>
+      <h2>Do you need help?</h2>
+      <p class="modal-subtitle">Si tienes alguna duda o consulta, escríbela aquí y te responderemos pronto.</p>
       <form id="help-form">
         <div class="form-group">
           <textarea id="help-text" rows="5" placeholder="Escribe tu consulta..."></textarea>
@@ -123,12 +123,12 @@
       <header>
         <div id="header-top">
           <div id="user-info">
-            <span>Welcome </span><span id="user-name" class="user-link"></span><span>!</span>
+            <span>Welcome </span><span id="user-name" class="user-link"></span>
           </div>
-          <img src="data/images/yew logo png.png" alt="Your English World" id="home-logo-top">
           <button id="help-btn-home" class="btn-icon" title="Ayuda">?</button>
         </div>
-        <p class="subtitle">MET Practice Test</p>
+        <img src="data/images/yew logo png.png" alt="Your English World" id="home-logo-top">
+        <p class="subtitle">MET - Practice Test</p>
       </header>
       <h2>Selecciona una sección</h2>
       <div id="category-buttons"></div>
@@ -183,11 +183,11 @@
     </div>
 
     <div id="results-container" class="hidden">
-      <h2>¡Test completado!</h2>
+      <h2>Tus resultados:</h2>
       <p id="score-display"></p>
       <div id="results-breakdown"></div>
-      <button id="email-btn" class="btn btn-primary">Enviar Resultados por Email</button>
-      <button id="restart-test-btn" class="btn btn-secondary">Reiniciar Test</button>
+      <button id="email-btn" class="btn btn-primary">Enviar resultados por email</button>
+      <button id="restart-test-btn" class="btn btn-secondary">Reiniciar test</button>
     </div>
   </div>
 

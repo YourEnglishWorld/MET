@@ -783,7 +783,7 @@ function showWritingResults() {
   getElement('quiz-view').classList.add('hidden');
   getElement('results-container').classList.remove('hidden');
 
-  getElement('score-display').textContent = '¡Completado!';
+  getElement('score-display').textContent = '¡Test completado!';
   
   const breakdown = getElement('results-breakdown');
   breakdown.innerHTML = `
@@ -791,7 +791,7 @@ function showWritingResults() {
       <span class="result-category-name">WRITING</span>
       <span class="result-category-score">Grupo ${writingGroup.id}</span>
     </div>
-    <p style="color: #888; font-size: 0.9rem; margin-top: 15px;">
+    <p style="color: #888; font-size: 0.9rem; margin-top: 15px; text-align: center;">
       Tus respuestas han sido guardadas exitosamente.
     </p>
   `;
