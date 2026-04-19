@@ -314,7 +314,17 @@ function renderCategorySelect() {
 
     const btn = document.createElement('button');
     btn.className = 'category-btn';
-    btn.innerHTML = `<strong>${sec.key.replace('_', ' ')}</strong><span>${label}</span>`;
+    function formatSectionName(key) {
+  const names = {
+    'WRITING': 'WRITING',
+    'LISTENING': 'LISTENING',
+    'READING_AND_GRAMMAR': 'READING AND GRAMMAR',
+    'SPEAKING': 'SPEAKING'
+  };
+  return names[key] || key.replace(/_/g, ' ');
+}
+
+    btn.innerHTML = `<strong>${formatSectionName(sec.key)}</strong><span>${label}</span>`;
     
     if (count === 0) {
       btn.style.opacity = '0.5';
@@ -592,20 +602,19 @@ function renderCarouselSlide() {
   return `
     <div class="carousel-container">
       <h3 class="carousel-title">Revisa tus respuestas</h3>
-      <div class="carousel-slide">
-        <div class="slide-header">${slide.title}</div>
-        <div class="slide-question">${slide.question.replace(/\n/g, '<br>')}</div>
-        <div class="slide-response">${slide.response.replace(/\n/g, '<br>')}</div>
+      <div class="carousel-viewer">
+        <button id="carousel-prev" class="carousel-btn carousel-btn-left">&lt;</button>
+        <div class="carousel-slide">
+          <div class="slide-header">${slide.title}</div>
+          <div class="slide-question">${slide.question.replace(/\n/g, '<br>')}</div>
+          <div class="slide-response">${slide.response.replace(/\n/g, '<br>')}</div>
+        </div>
+        <button id="carousel-next" class="carousel-btn carousel-btn-right">&gt;</button>
       </div>
-      <div class="carousel-nav">
-        <button id="carousel-prev" class="carousel-btn">◀</button>
-        <span class="carousel-indicators">
-          ${slides.map((_, i) => `<span class="indicator ${i === currentPreviewIndex ? 'active' : ''}" data-index="${i}"></span>`).join('')}
-        </span>
-        <button id="carousel-next" class="carousel-btn">▶</button>
+      <div class="carousel-indicators">
+        ${slides.map((_, i) => `<span class="indicator ${i === currentPreviewIndex ? 'active' : ''}" data-index="${i}"></span>`).join('')}
       </div>
       <button id="edit-response-btn" class="btn btn-edit">Editar esta respuesta</button>
-      <div class="carousel-hint">Usa las flechas ← → o las teclas A/D para navegar</div>
     </div>
   `;
 }
@@ -614,6 +623,7 @@ function setupCarouselEvents() {
   const prevBtn = document.getElementById('carousel-prev');
   const nextBtn = document.getElementById('carousel-next');
   const editBtn = document.getElementById('edit-response-btn');
+  const indicators = document.querySelectorAll('.indicator');
   
   if (prevBtn) {
     prevBtn.addEventListener('click', () => navigateCarousel(-1));
@@ -624,6 +634,14 @@ function setupCarouselEvents() {
   if (editBtn) {
     editBtn.addEventListener('click', editCurrentResponse);
   }
+  
+  indicators.forEach(ind => {
+    ind.addEventListener('click', () => {
+      const index = parseInt(ind.dataset.index);
+      currentPreviewIndex = index;
+      updateCarouselDisplay();
+    });
+  });
 
   document.addEventListener('keydown', handleCarouselKeydown);
 }
@@ -676,9 +694,12 @@ function navigateCarousel(direction) {
   const totalSlides = 4;
   currentPreviewIndex = (currentPreviewIndex + direction + totalSlides) % totalSlides;
   
+  updateCarouselDisplay();
+}
+
+function updateCarouselDisplay() {
   const slideContainer = document.querySelector('.carousel-slide');
   const indicators = document.querySelectorAll('.indicator');
-  const titleEl = document.querySelector('.carousel-title');
   
   if (slideContainer) {
     const task1 = writingGroup.task1;
@@ -946,25 +967,44 @@ function previousQuestion() {
 }
 
 function restartQuestion() {
-  if (!confirm('Are you sure? Perderás tu progreso en esta sección.')) {
-    return;
-  }
+  getElement('confirm-modal').classList.remove('hidden');
   
-  if (currentSection === 'WRITING') {
-    writingGroup = shuffleArray([...quizData.WRITING.groups])[0];
-    writingResponses = [];
-    currentWritingStep = WRITING_STEPS.TASK1_Q1;
-    currentPreviewIndex = 0;
-    renderWritingStep();
-    updatePrevButtonVisibility();
-    return;
-  }
+  const confirmBtn = getElement('confirm-ok');
+  const cancelBtn = getElement('confirm-cancel');
   
-  currentQuestionIndex = 0;
-  selectedOptionIndex = null;
-  score[currentSection] = 0;
-  answeredQuestions.clear();
-  loadQuestion();
+  const handleConfirm = () => {
+    getElement('confirm-modal').classList.add('hidden');
+    cleanup();
+    
+    if (currentSection === 'WRITING') {
+      writingGroup = shuffleArray([...quizData.WRITING.groups])[0];
+      writingResponses = [];
+      currentWritingStep = WRITING_STEPS.TASK1_Q1;
+      currentPreviewIndex = 0;
+      renderWritingStep();
+      updatePrevButtonVisibility();
+      return;
+    }
+    
+    currentQuestionIndex = 0;
+    selectedOptionIndex = null;
+    score[currentSection] = 0;
+    answeredQuestions.clear();
+    loadQuestion();
+  };
+  
+  const handleCancel = () => {
+    getElement('confirm-modal').classList.add('hidden');
+    cleanup();
+  };
+  
+  const cleanup = () => {
+    confirmBtn.removeEventListener('click', handleConfirm);
+    cancelBtn.removeEventListener('click', handleCancel);
+  };
+  
+  confirmBtn.addEventListener('click', handleConfirm);
+  cancelBtn.addEventListener('click', handleCancel);
 }
 
 function showResults() {
@@ -1126,33 +1166,24 @@ function initEventListeners() {
   getElement('registration-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const name = getElement('reg-name').value.trim();
-    let email = getElement('reg-email').value.trim();
+    const username = getElement('reg-email-username').value.trim();
+    let domain = getElement('reg-email-domain').value.trim();
     
     if (!isValidName(name)) {
       alert('Por favor ingresa un nombre válido (mínimo 2 caracteres)');
       return;
     }
     
-    if (!email) {
-      alert('Por favor ingresa un correo electrónico');
+    if (!username) {
+      alert('Por favor ingresa tu nombre de usuario');
       return;
     }
     
-    if (email === 'Otro') {
-      const customDomain = prompt('Ingresa tu dominio de correo (ej: empresa.com)');
-      if (customDomain) {
-        const username = prompt('Ingresa tu nombre de usuario');
-        if (username) {
-          email = username + '@' + customDomain;
-        } else {
-          return;
-        }
-      } else {
-        return;
-      }
-    } else if (!email.includes('@')) {
-      email = email + '@gmail.com';
+    if (!domain) {
+      domain = 'gmail.com';
     }
+    
+    const email = username + '@' + domain;
     
     if (name && email) {
       saveUser({ name, email });
@@ -1164,6 +1195,8 @@ function initEventListeners() {
       }
     }
   });
+  
+  getElement('reg-cancel').addEventListener('click', hideRegistrationModal);
 
   getElement('help-form').addEventListener('submit', (e) => {
     e.preventDefault();
@@ -1182,33 +1215,24 @@ function initEventListeners() {
   getElement('change-user-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const name = getElement('change-name').value.trim();
-    let email = getElement('change-email').value.trim();
+    const username = getElement('change-email-username').value.trim();
+    let domain = getElement('change-email-domain').value.trim();
     
     if (!isValidName(name)) {
       alert('Por favor ingresa un nombre válido (mínimo 2 caracteres)');
       return;
     }
     
-    if (!email) {
-      alert('Por favor ingresa un correo electrónico');
+    if (!username) {
+      alert('Por favor ingresa tu nombre de usuario');
       return;
     }
     
-    if (email === 'Otro') {
-      const customDomain = prompt('Ingresa tu dominio de correo (ej: empresa.com)');
-      if (customDomain) {
-        const username = prompt('Ingresa tu nombre de usuario');
-        if (username) {
-          email = username + '@' + customDomain;
-        } else {
-          return;
-        }
-      } else {
-        return;
-      }
-    } else if (!email.includes('@')) {
-      email = email + '@gmail.com';
+    if (!domain) {
+      domain = 'gmail.com';
     }
+    
+    const email = username + '@' + domain;
     
     if (name && email) {
       saveUser({ name, email });

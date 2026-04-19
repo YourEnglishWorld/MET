@@ -38,6 +38,17 @@
     </div>
   </div>
 
+  <div class="modal-overlay hidden" id="confirm-modal">
+    <div class="modal">
+      <h2>Are you sure?</h2>
+      <p class="modal-subtitle">Perderás tu progreso en esta sección.</p>
+      <div class="modal-buttons">
+        <button id="confirm-cancel" class="btn btn-secondary">Cancelar</button>
+        <button id="confirm-ok" class="btn btn-primary">Sí, reiniciar</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay hidden" id="registration-modal">
     <div class="modal">
       <h2>Antes de comenzar</h2>
@@ -48,13 +59,23 @@
           <input type="text" id="reg-name" required placeholder="Tu nombre">
         </div>
         <div class="form-group">
-          <label for="reg-email">Correo electrónico</label>
-          <input type="text" id="reg-email" required placeholder="tu email" list="email-domains">
+          <label for="reg-email-username">Correo electrónico</label>
+          <div class="email-input-group">
+            <input type="text" id="reg-email-username" required placeholder="tu nombre de usuario" list="email-username-suggestions">
+            <span class="email-at">@</span>
+            <input type="text" id="reg-email-domain" required list="email-domains" placeholder="gmail.com">
+          </div>
         </div>
-        <button type="submit" class="btn btn-primary">Comenzar</button>
+        <div class="modal-buttons">
+          <button type="button" class="btn btn-secondary" id="reg-cancel">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Comenzar</button>
+        </div>
       </form>
     </div>
   </div>
+
+  <datalist id="email-username-suggestions">
+  </datalist>
 
   <div class="modal-overlay hidden" id="help-modal">
     <div class="modal">
@@ -82,8 +103,12 @@
           <input type="text" id="change-name" required placeholder="Tu nombre">
         </div>
         <div class="form-group">
-          <label for="change-email">Correo electrónico</label>
-          <input type="text" id="change-email" required placeholder="tu email" list="email-domains">
+          <label for="change-email-username">Correo electrónico</label>
+          <div class="email-input-group">
+            <input type="text" id="change-email-username" required placeholder="tu nombre de usuario" list="email-username-suggestions">
+            <span class="email-at">@</span>
+            <input type="text" id="change-email-domain" required list="email-domains" placeholder="gmail.com">
+          </div>
         </div>
         <div class="modal-buttons">
           <button type="button" class="btn btn-secondary" id="change-cancel">Cancelar</button>
@@ -95,12 +120,12 @@
 
   <div class="container">
     <div id="category-select" class="hidden">
-      <img src="data/images/yew logo png.png" alt="Your English World" id="home-logo-top">
       <header>
         <div id="header-top">
-          <div id="user-info" class="hidden">
+          <div id="user-info">
             <span id="user-name" class="user-link"></span>
           </div>
+          <img src="data/images/yew logo png.png" alt="Your English World" id="home-logo-top">
           <button id="help-btn-home" class="btn-icon" title="Ayuda">?</button>
         </div>
         <p class="subtitle">MET Practice Test</p>
