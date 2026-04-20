@@ -802,7 +802,7 @@ function showWritingResults() {
   breakdown.innerHTML = `
     <div class="result-category">
       <span class="result-category-name">WRITING</span>
-      <span class="result-category-score">${part1Answered}/${part1Count} | ${part2Answered}/${part2Count}</span>
+      <span class="result-category-score">${part1Answered}/${part1Count} • ${part2Answered}/${part2Count}</span>
     </div>
   `;
   
@@ -1054,7 +1054,7 @@ function showResults() {
       
       const part1Answered = Math.min(answered, part1Count);
       const part2Answered = answered > part1Count ? 1 : 0;
-      displayScore = `${part1Answered}/${part1Count} | ${part2Answered}/${part2Count}`;
+      displayScore = `${part1Answered}/${part1Count} • ${part2Answered}/${part2Count}`;
     } else if (cat === 'LISTENING' || cat === 'READING_AND_GRAMMAR') {
       if (catData && catData.length > 0) {
         const count = flattenQuestions(cat, catData).length;
@@ -1088,36 +1088,6 @@ function showResults() {
   clearProgress();
   getElement('email-btn').classList.remove('hidden');
 }
-      const answered = sectionResponses.filter(r => r && r.length > 0).length;
-      const part1Answered = Math.min(answered, part1Count);
-      const part2Answered = answered > part1Count ? 1 : 0;
-      displayScore = `${part1Answered}/${part1Count} | ${part2Answered}/${part2Count}`;
-    } else if (cat === 'LISTENING' || cat === 'READING_AND_GRAMMAR') {
-      if (catData && catData.length > 0) {
-        const count = flattenQuestions(cat, catData).length;
-        displayScore = `${score[cat] || 0}/${count}`;
-      }
-    } else if (cat === 'SPEAKING') {
-      const partCount = 2;
-      const answered = sectionResponses.filter(r => r && r.length > 0).length;
-      displayScore = `${answered}/${partCount}`;
-    }
-
-    if (displayScore) {
-      const div = document.createElement('div');
-      div.className = 'result-category';
-      div.innerHTML = `
-        <span class="result-category-name">${catName}</span>
-        <span class="result-category-score">${displayScore}</span>
-      `;
-      breakdown.appendChild(div);
-    }
-  });
-
-  logActivity('FIN', `Resultado: ${percentage}% (${totalScore}/${totalParts})`);
-  clearProgress();
-  getElement('email-btn').classList.remove('hidden');
-}
 
 function sendEmail() {
   const totalScore = score.WRITING + score.LISTENING + score.READING_AND_GRAMMAR + score.SPEAKING;
@@ -1139,7 +1109,7 @@ function sendEmail() {
 Puntuación Total: ${percentage}% (${totalScore}/${totalParts})
 
 Desglose por sección:
-- WRITING: ${part1Answered}/${writingPart1} | ${part2Answered}/${writingPart2}
+- WRITING: ${part1Answered}/${writingPart1} • ${part2Answered}/${writingPart2}
 - LISTENING: ${score.LISTENING || 0}/${listeningCount}
 - READING AND GRAMMAR: ${score.READING_AND_GRAMMAR || 0}/${readingCount}
 - SPEAKING: ${score.SPEAKING || 0}/${speakingPartCount}
