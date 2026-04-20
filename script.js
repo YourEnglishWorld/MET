@@ -787,17 +787,20 @@ function showWritingResults() {
   getElement('quiz-view').classList.add('hidden');
   getElement('results-container').classList.remove('hidden');
 
+  const part1Count = currentGroup?.task1?.length || 0;
+  const part2Count = currentGroup?.task2 ? 1 : 0;
+  const answered = sectionResponses.filter(r => r && r.length > 0).length;
+  const part1Answered = Math.min(answered, part1Count);
+  const part2Answered = answered > part1Count ? 1 : 0;
+
   getElement('score-display').textContent = '¡Test completado!';
   
   const breakdown = getElement('results-breakdown');
   breakdown.innerHTML = `
     <div class="result-category">
       <span class="result-category-name">WRITING</span>
-      <span class="result-category-score">Grupo ${currentGroup.id}</span>
+      <span class="result-category-score">${part1Answered}/${part1Count} | ${part2Answered}/${part2Count}</span>
     </div>
-    <p style="color: #888; font-size: 0.9rem; margin-top: 15px; text-align: center;">
-      Tus respuestas han sido guardadas exitosamente.
-    </p>
   `;
   
   getElement('email-btn').classList.remove('hidden');
@@ -1035,19 +1038,38 @@ function showResults() {
   const breakdown = getElement('results-breakdown');
   breakdown.innerHTML = '';
 
-  const categories = ['GRAMMAR', 'READING', 'LISTENING'];
-  categories.forEach(cat => {
-    if (quizData[cat] && quizData[cat].length > 0) {
-      const count = flattenQuestions(cat, quizData[cat]).length;
-      if (count > 0) {
-        const div = document.createElement('div');
-        div.className = 'result-category';
-        div.innerHTML = `
-          <span class="result-category-name">${cat}</span>
-          <span class="result-category-score">${score[cat]}/${count}</span>
-        `;
-        breakdown.appendChild(div);
+  const order = ['WRITING', 'LISTENING', 'READING_AND_GRAMMAR', 'SPEAKING'];
+  order.forEach(cat => {
+    const catData = quizData[cat];
+    let displayScore = '';
+    let catName = cat.replace('_', ' ');
+
+    if (cat === 'WRITING') {
+      const part1Count = catData?.groups?.[0]?.task1?.length || 0;
+      const part2Count = catData?.groups?.[0]?.task2 ? 1 : 0;
+      const answered = sectionResponses.filter(r => r && r.length > 0).length;
+      const part1Answered = Math.min(answered, part1Count);
+      const part2Answered = answered > part1Count ? 1 : 0;
+      displayScore = `${part1Answered}/${part1Count} | ${part2Answered}/${part2Count}`;
+    } else if (cat === 'LISTENING' || cat === 'READING_AND_GRAMMAR') {
+      if (catData && catData.length > 0) {
+        const count = flattenQuestions(cat, catData).length;
+        displayScore = `${score[cat] || 0}/${count}`;
       }
+    } else if (cat === 'SPEAKING') {
+      const partCount = 2;
+      const answered = sectionResponses.filter(r => r && r.length > 0).length;
+      displayScore = `${answered}/${partCount}`;
+    }
+
+    if (displayScore) {
+      const div = document.createElement('div');
+      div.className = 'result-category';
+      div.innerHTML = `
+        <span class="result-category-name">${catName}</span>
+        <span class="result-category-score">${displayScore}</span>
+      `;
+      breakdown.appendChild(div);
     }
   });
 
@@ -1057,26 +1079,35 @@ function showResults() {
 }
 
 function sendEmail() {
-  const totalScore = Object.values(score).reduce((a, b) => a + b, 0);
-  const totalQuestions = shuffledQuestions.length;
-  const percentage = Math.round((totalScore / totalQuestions) * 100);
+  const totalScore = score.WRITING + score.LISTENING + score.READING_AND_GRAMMAR + score.SPEAKING;
+  const writingPart1 = currentGroup?.task1?.length || 0;
+  const writingPart2 = currentGroup?.task2 ? 1 : 0;
+  const listeningCount = quizData.LISTENING?.length || 0;
+  const readingCount = quizData.READING_AND_GRAMMAR?.length || 0;
+  const speakingPartCount = 2;
 
-  const subject = encodeURIComponent('Resultados MET Quiz - Your English World');
-  const body = encodeURIComponent(`
-Resultados del Test MET
+  const part1Answered = sectionResponses.filter((r, i) => r && r.length > 0 && i < writingPart1).length;
+  const part2Answered = sectionResponses[writingPart1] && sectionResponses[writingPart1].length > 0 ? 1 : 0;
+
+  const totalParts = writingPart1 + writingPart2 + listeningCount + readingCount + speakingPartCount;
+  const percentage = totalParts > 0 ? Math.round((totalScore / totalParts) * 100) : 0;
+
+  const subject = 'Resultados MET Quiz - Your English World';
+  const body = `Resultados del Test MET
 =======================
-Puntuación Total: ${percentage}% (${totalScore}/${totalQuestions})
+Puntuación Total: ${percentage}% (${totalScore}/${totalParts})
 
-Desglose por categoría:
-- GRAMMAR: ${score.GRAMMAR}/${quizData.GRAMMAR.length}
-- READING: ${score.READING}/${flattenQuestions('READING', quizData.READING).length}
-- LISTENING: ${score.LISTENING}/${flattenQuestions('LISTENING', quizData.LISTENING).length}
+Desglose por sección:
+- WRITING: ${part1Answered}/${writingPart1} | ${part2Answered}/${writingPart2}
+- LISTENING: ${score.LISTENING || 0}/${listeningCount}
+- READING AND GRAMMAR: ${score.READING_AND_GRAMMAR || 0}/${readingCount}
+- SPEAKING: ${score.SPEAKING || 0}/${speakingPartCount}
 
 ---
-Enviado desde Your English World Quiz
-  `);
+Enviado desde Your English World Quiz`;
 
-  window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  const mailto = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.location.href = mailto;
 }
 
 function restartTest() {

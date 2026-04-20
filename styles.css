@@ -672,6 +672,13 @@ h1 {
   margin: 0 auto 15px;
 }
 
+#results-logo {
+  display: block;
+  max-width: 80px;
+  height: auto;
+  margin: 0 auto 20px;
+}
+
 #home-footer {
   margin-top: 30px;
   padding: 15px;
