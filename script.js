@@ -725,11 +725,12 @@ function renderWritingStep() {
   } else {
     getElement('controls').classList.remove('hidden');
     getElement('check-btn').classList.add('hidden');
-    getElement('next-btn').classList.remove('hidden');
-    getElement('next-btn').textContent = 'Siguiente';
+    getElement('next-btn').classList.add('hidden');
     getElement('prev-btn').classList.remove('hidden');
     getElement('restart-btn').classList.add('hidden');
   }
+  
+  updatePrevButtonVisibility();
 }
 
 function renderWritingTask1(qIndex) {
@@ -1469,13 +1470,11 @@ Enviado desde Your English World Quiz`;
 
 function restartTest() {
   getElement('confirm-modal')?.classList.remove('hidden');
-  
-  const confirmOk = getElement('confirm-ok');
-  const confirmCancel = getElement('confirm-cancel');
-  
-  const handleConfirm = () => {
+}
+
+function setupConfirmModalListeners() {
+  getElement('confirm-ok')?.addEventListener('click', () => {
     getElement('confirm-modal')?.classList.add('hidden');
-    cleanup();
     clearProgress();
     currentQuestionIndex = 0;
     selectedOptionIndex = null;
@@ -1487,20 +1486,19 @@ function restartTest() {
     currentWritingStep = 0;
     currentPreviewIndex = 0;
 
-    getElement('email-btn').classList.remove('hidden');
-    getElement('results-container').classList.add('hidden');
+    getElement('email-btn')?.classList.remove('hidden');
+    getElement('results-container')?.classList.add('hidden');
     
     if (currentSection) {
       beginQuiz(currentSection);
     } else {
       renderCategorySelect();
     }
-  };
+  });
   
-  confirmOk?.addEventListener('click', handleConfirm, { once: true });
-  confirmCancel?.addEventListener('click', () => {
+  getElement('confirm-cancel')?.addEventListener('click', () => {
     getElement('confirm-modal')?.classList.add('hidden');
-  }, { once: true });
+  });
 }
 
 async function continueFromSaved() {
@@ -1720,7 +1718,6 @@ function initEventListeners() {
 
 function goHome() {
   stopTimer();
-  clearProgress();
   currentQuestionIndex = 0;
   selectedOptionIndex = null;
   score = { WRITING: 0, LISTENING: 0, READING_AND_GRAMMAR: 0, SPEAKING: 0 };
@@ -1754,6 +1751,7 @@ async function init() {
   loadUser();
   updateUserDisplay();
   initEventListeners();
+  setupConfirmModalListeners();
 
   const loaded = await loadAllData();
 
