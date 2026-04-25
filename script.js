@@ -908,11 +908,29 @@ function editCurrentResponse() {
 
 function updatePrevButtonVisibility() {
   const prevBtn = getElement('prev-btn');
+  const previewBtn = getElement('preview-btn');
+  const submitBtn = getElement('submit-section-btn');
+  const checkBtn = getElement('check-btn');
+  const nextBtn = getElement('next-btn');
+  const restartBtn = getElement('restart-btn');
   
   if (currentSection === 'WRITING') {
     prevBtn.classList.toggle('hidden', currentWritingStep === WRITING_STEPS.TASK1_Q1);
+    
+    const isPreview = currentWritingStep === WRITING_STEPS.PREVIEW;
+    previewBtn.classList.toggle('hidden', !isPreview);
+    submitBtn.classList.toggle('hidden', !isPreview);
+    checkBtn.classList.toggle('hidden', isPreview);
+    nextBtn.classList.toggle('hidden', isPreview);
+    restartBtn.textContent = isPreview ? 'Enviar' : 'Reiniciar';
   } else {
     prevBtn.classList.toggle('hidden', currentQuestionIndex === 0);
+    
+    const isLast = currentQuestionIndex >= shuffledQuestions.length - 1;
+    previewBtn.classList.toggle('hidden', !isLast);
+    submitBtn.classList.toggle('hidden', !isLast);
+    checkBtn.classList.toggle('hidden', isLast);
+    nextBtn.classList.toggle('hidden', isLast);
   }
 }
 
@@ -1315,7 +1333,7 @@ function showResults() {
   
   const config = SECTION_CONFIG[currentSection];
   if (config) {
-    window.location.hash = `#/${config.name}/preview`;
+    window.location.hash = `#/${config.name}/results`;
   }
   
   getElement('quiz-view').classList.add('hidden');
@@ -1505,9 +1523,30 @@ function initEventListeners() {
     goToPreview();
   });
 
-  getElement('skip-btn')?.addEventListener('click', () => {
-    pauseTimer();
-    goToPreview();
+  getElement('preview-btn').addEventListener('click', () => {
+    if (currentSection === 'WRITING') {
+      currentWritingStep = WRITING_STEPS.TASK2;
+      renderWritingStep();
+      updateHash('WRITING', 'task2', 1);
+    } else {
+      const qNum = currentQuestionIndex;
+      if (qNum > 0) {
+        currentQuestionIndex = qNum - 1;
+        loadQuestion();
+      }
+      const config = SECTION_CONFIG[currentSection];
+      if (config) {
+        updateHash(currentSection, `part${Math.ceil(qNum / 20)}`, qNum);
+      }
+    }
+  });
+
+  getElement('submit-section-btn').addEventListener('click', () => {
+    if (currentSection === 'WRITING') {
+      submitWritingResponses();
+    } else {
+      showResults();
+    }
   });
 
   document.querySelectorAll('.user-link').forEach(el => {
