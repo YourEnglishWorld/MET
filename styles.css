@@ -104,12 +104,27 @@ h1 {
   flex-shrink: 0;
 }
 
+#progress-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+#progress-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 #progress-bar-container {
   flex-grow: 1;
   height: 6px;
   background-color: #f0f0f0;
   border-radius: 10px;
   overflow: hidden;
+  max-width: calc(100% - 80px);
 }
 
 #progress-bar {
@@ -1202,39 +1217,19 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-#timer-ring {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  background: conic-gradient(#667eea 0%, #764ba2 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  transition: background 0.3s ease;
-}
-
-#timer-ring::before {
-  content: '';
-  position: absolute;
-  width: 40px;
-  height: 40px;
-  background: #fff;
-  border-radius: 50%;
-}
-
-#timer-ring.warning {
-  background: conic-gradient(#dc3545 0%, #a71d2a 100%);
-}
-
-#timer-ring.warning::before {
-  background: #fff5f5;
+  flex-shrink: 0;
 }
 
 #timer-display {
-  position: relative;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333;
+  font-variant-numeric: tabular-nums;
+}
+
+#timer-container.warning {
+  color: #dc3545;
+}
   z-index: 1;
   font-size: 0.75rem;
   font-weight: 600;

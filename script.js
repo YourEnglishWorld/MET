@@ -152,10 +152,12 @@ function formatTime(seconds) {
 
 function updateTimerDisplay() {
   const display = getElement('timer-display');
-  const ring = getElement('timer-ring');
-  if (display && ring) {
+  const container = getElement('timer-container');
+  if (display) {
     display.textContent = formatTime(timerRemaining);
-    ring.classList.toggle('warning', timerRemaining <= WARNING_TIME);
+    if (container) {
+      container.classList.toggle('warning', timerRemaining <= WARNING_TIME);
+    }
   }
 }
 
@@ -1026,6 +1028,9 @@ async function submitWritingResponses() {
 }
 
 function showWritingResults() {
+  pauseTimer();
+  window.location.hash = '#/writing/preview';
+  
   getElement('quiz-view').classList.add('hidden');
   getElement('results-container').classList.remove('hidden');
 
@@ -1306,6 +1311,13 @@ function restartQuestion() {
 }
 
 function showResults() {
+  pauseTimer();
+  
+  const config = SECTION_CONFIG[currentSection];
+  if (config) {
+    window.location.hash = `#/${config.name}/preview`;
+  }
+  
   getElement('quiz-view').classList.add('hidden');
   getElement('results-container').classList.remove('hidden');
 
