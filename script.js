@@ -159,10 +159,15 @@ function startTimer(section) {
   if (timerRunning) return;
   
   const saved = loadProgress();
-  if (saved && saved.section === section && saved.timerEnd) {
-    timerRemaining = Math.max(0, Math.floor((saved.timerEnd - Date.now()) / 1000));
+  const now = Date.now();
+  if (saved && saved.section === section && saved.timerEnd && saved.timerEnd > now) {
+    timerRemaining = Math.floor((saved.timerEnd - now) / 1000);
   } else {
     timerRemaining = SECTION_TIMES[section] || SECTION_TIMES.WRITING;
+    if (saved) {
+      saved.timerEnd = null;
+      localStorage.setItem('metQuizProgress', JSON.stringify(saved));
+    }
   }
   
   timerRunning = true;
@@ -915,23 +920,23 @@ function updatePrevButtonVisibility() {
   const skipBtn = getElement('skip-btn');
   
   if (currentSection === 'WRITING') {
-    prevBtn.classList.toggle('hidden', currentWritingStep === WRITING_STEPS.TASK1_Q1);
+    prevBtn?.classList.toggle('hidden', currentWritingStep === WRITING_STEPS.TASK1_Q1);
     
     const isPreview = currentWritingStep === WRITING_STEPS.PREVIEW;
-    previewBtn.classList.toggle('hidden', !isPreview);
-    submitBtn.classList.toggle('hidden', !isPreview);
-    checkBtn.classList.toggle('hidden', isPreview);
-    nextBtn.classList.toggle('hidden', isPreview);
+    previewBtn?.classList.toggle('hidden', !isPreview);
+    submitBtn?.classList.toggle('hidden', !isPreview);
+    checkBtn?.classList.toggle('hidden', true);
+    nextBtn?.classList.toggle('hidden', isPreview);
     restartBtn.textContent = isPreview ? 'Enviar' : 'Reiniciar';
     if (skipBtn) skipBtn.classList.add('hidden');
-  } else {
-    prevBtn.classList.toggle('hidden', currentQuestionIndex === 0);
+  } else if (currentSection) {
+    prevBtn?.classList.toggle('hidden', currentQuestionIndex === 0);
     
     const isLast = currentQuestionIndex >= shuffledQuestions.length - 1;
-    previewBtn.classList.toggle('hidden', !isLast);
-    submitBtn.classList.toggle('hidden', !isLast);
-    checkBtn.classList.toggle('hidden', isLast);
-    nextBtn.classList.toggle('hidden', isLast);
+    previewBtn?.classList.toggle('hidden', !isLast);
+    submitBtn?.classList.toggle('hidden', !isLast);
+    checkBtn?.classList.toggle('hidden', isLast);
+    nextBtn?.classList.toggle('hidden', isLast);
     
     if (skipBtn) {
       skipBtn.classList.toggle('hidden', !isLast);
