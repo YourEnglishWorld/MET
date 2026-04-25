@@ -118,6 +118,17 @@
     </div>
   </div>
 
+  <div class="modal-overlay hidden" id="time-modal">
+    <div class="modal">
+      <h2>⏰ Tiempo agotado</h2>
+      <p class="modal-subtitle">Tu tiempo en esta sección ha terminado. ¿Qué deseas hacer?</p>
+      <div class="modal-buttons">
+        <button id="time-home-btn" class="btn btn-secondary">Ir al Home</button>
+        <button id="time-preview-btn" class="btn btn-primary">Ir al Preview</button>
+      </div>
+    </div>
+  </div>
+
   <div class="container">
     <div id="category-select" class="hidden">
       <header>
@@ -139,6 +150,11 @@
     <div id="quiz-view" class="hidden">
       <div id="quiz-top-bar">
         <button id="home-btn" class="btn-link">Home</button>
+        <div id="timer-container">
+          <div id="timer-ring">
+            <span id="timer-display">00:00</span>
+          </div>
+        </div>
         <span id="quiz-user-name" class="user-link"></span>
         <button id="help-btn-quiz" class="btn-icon" title="Ayuda">?</button>
       </div>

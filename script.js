@@ -5,6 +5,106 @@ const quizData = {
   SPEAKING: []
 };
 
+const SECTION_TIMES = {
+  WRITING: 45 * 60,
+  LISTENING: 35 * 60,
+  READING_AND_GRAMMAR: 65 * 60,
+  SPEAKING: 10 * 60
+};
+
+const WARNING_TIME = 5 * 60;
+
+let timerInterval = null;
+let timerRemaining = 0;
+let timerRunning = false;
+
+function formatTime(seconds) {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+function updateTimerDisplay() {
+  const display = getElement('timer-display');
+  const ring = getElement('timer-ring');
+  if (display && ring) {
+    display.textContent = formatTime(timerRemaining);
+    ring.classList.toggle('warning', timerRemaining <= WARNING_TIME);
+  }
+}
+
+function startTimer(section) {
+  if (timerRunning) return;
+  
+  const saved = loadProgress();
+  if (saved && saved.section === section && saved.timerEnd) {
+    timerRemaining = Math.max(0, Math.floor((saved.timerEnd - Date.now()) / 1000));
+  } else {
+    timerRemaining = SECTION_TIMES[section] || SECTION_TIMES.WRITING;
+  }
+  
+  timerRunning = true;
+  updateTimerDisplay();
+  
+  timerInterval = setInterval(() => {
+    timerRemaining--;
+    updateTimerDisplay();
+    
+    if (timerRemaining <= 0) {
+      stopTimer();
+      showTimeModal();
+    }
+  }, 1000);
+}
+
+function pauseTimer() {
+  timerRunning = false;
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+  saveTimerProgress();
+}
+
+function stopTimer() {
+  pauseTimer();
+  timerRemaining = 0;
+  updateTimerDisplay();
+}
+
+function resumeTimer() {
+  if (timerRemaining > 0 && !timerRunning) {
+    timerRunning = true;
+    updateTimerDisplay();
+    timerInterval = setInterval(() => {
+      timerRemaining--;
+      updateTimerDisplay();
+      if (timerRemaining <= 0) {
+        stopTimer();
+        showTimeModal();
+      }
+    }, 1000);
+  }
+}
+
+function saveTimerProgress() {
+  if (currentSection && timerRemaining > 0) {
+    const progress = JSON.parse(localStorage.getItem('quizProgress') || '{}');
+    progress.timerEnd = Date.now() + (timerRemaining * 1000);
+    progress.section = currentSection;
+    localStorage.setItem('quizProgress', JSON.stringify(progress));
+  }
+}
+
+function showTimeModal() {
+  getElement('time-modal').classList.remove('hidden');
+  getElement('timer-display').textContent = '00:00';
+}
+
+function hideTimeModal() {
+  getElement('time-modal').classList.add('hidden');
+}
+
 let questions = [];
 let currentQuestionIndex = 0;
 let selectedOptionIndex = null;
@@ -378,6 +478,7 @@ function beginQuiz(section) {
     logActivity('INICIO', `WRITING - Grupo: ${currentGroup.id}`);
     renderWritingStep();
     updatePrevButtonVisibility();
+    startTimer(section);
     return;
   }
 
@@ -407,6 +508,7 @@ function beginQuiz(section) {
   loadQuestion();
   updatePrevButtonVisibility();
   saveProgress();
+  startTimer(section);
 }
 
 function setupInstructionsPanel() {
@@ -946,6 +1048,8 @@ function checkAnswer() {
   feedback.classList.remove('hidden');
   answeredQuestions.add(currentQuestionIndex);
 
+  pauseTimer();
+  
   getElement('check-btn').classList.add('hidden');
   getElement('next-btn').classList.remove('hidden');
   getElement('restart-btn').classList.remove('hidden');
@@ -962,9 +1066,11 @@ function nextQuestion() {
   currentQuestionIndex++;
 
   if (currentQuestionIndex >= shuffledQuestions.length) {
+    pauseTimer();
     showResults();
   } else {
     loadQuestion();
+    resumeTimer();
   }
 }
 
@@ -984,6 +1090,7 @@ function previousQuestion() {
   if (currentQuestionIndex > 0) {
     currentQuestionIndex--;
     loadQuestion();
+    resumeTimer();
   }
 }
 
@@ -1202,6 +1309,23 @@ function initEventListeners() {
   getElement('results-home-btn').addEventListener('click', goHome);
   getElement('continue-btn').addEventListener('click', continueFromSaved);
   getElement('home-btn').addEventListener('click', goHome);
+  
+  getElement('time-home-btn').addEventListener('click', () => {
+    stopTimer();
+    hideTimeModal();
+    goHome();
+  });
+  
+  getElement('time-preview-btn').addEventListener('click', () => {
+    stopTimer();
+    hideTimeModal();
+    if (currentSection === 'WRITING') {
+      currentWritingStep = WRITING_STEPS.PREVIEW;
+      renderWritingStep();
+    } else {
+      showResults();
+    }
+  });
 
   document.querySelectorAll('.user-link').forEach(el => {
     el.addEventListener('click', showChangeUserModal);
@@ -1318,6 +1442,7 @@ function initEventListeners() {
 }
 
 function goHome() {
+  stopTimer();
   clearProgress();
   currentQuestionIndex = 0;
   selectedOptionIndex = null;
