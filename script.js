@@ -923,12 +923,25 @@ function updatePrevButtonVisibility() {
     prevBtn?.classList.toggle('hidden', currentWritingStep === WRITING_STEPS.TASK1_Q1);
     
     const isPreview = currentWritingStep === WRITING_STEPS.PREVIEW;
+    const isTask2 = currentWritingStep === WRITING_STEPS.TASK2;
     previewBtn?.classList.toggle('hidden', !isPreview);
     submitBtn?.classList.toggle('hidden', !isPreview);
     checkBtn?.classList.toggle('hidden', true);
     nextBtn?.classList.toggle('hidden', isPreview);
     restartBtn.textContent = isPreview ? 'Enviar' : 'Reiniciar';
-    if (skipBtn) skipBtn.classList.add('hidden');
+    
+    if (skipBtn) {
+      skipBtn.classList.toggle('hidden', !isTask2);
+      if (isTask2) {
+        skipBtn.textContent = 'Finalizar';
+        skipBtn.classList.remove('btn-secondary');
+        skipBtn.classList.add('btn-primary');
+      } else {
+        skipBtn.textContent = '⏭ Finalizar';
+        skipBtn.classList.remove('btn-primary');
+        skipBtn.classList.add('btn-secondary');
+      }
+    }
   } else if (currentSection) {
     prevBtn?.classList.toggle('hidden', currentQuestionIndex === 0);
     
@@ -1047,7 +1060,7 @@ function nextSectionStep() {
   if (currentWritingStep === WRITING_STEPS.TASK2) {
     currentWritingStep = WRITING_STEPS.PREVIEW;
     renderWritingStep();
-    updateHash('WRITING', 'task2', 1);
+    window.location.hash = '#/writing/preview';
     return;
   }
   
