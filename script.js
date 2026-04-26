@@ -836,11 +836,11 @@ function renderCarouselSlide() {
     }
   ];
 
-  const slide = slides[currentPreviewIndex];
+const slide = slides[currentPreviewIndex];
   
   return `
     <div class="carousel-container">
-      <h3 class="carousel-title">Revisa tus respuestas</h3>
+      <h3 class="carousel-title">Revisa tus respuestas <span id="edit-response-text" class="edit-link">Editar</span></h3>
       <div class="carousel-viewer">
         <button id="carousel-prev" class="carousel-btn carousel-btn-left">&lt;</button>
         <div class="carousel-slide">
@@ -853,7 +853,6 @@ function renderCarouselSlide() {
       <div class="carousel-indicators">
         ${slides.map((_, i) => `<span class="indicator ${i === currentPreviewIndex ? 'active' : ''}" data-index="${i}"></span>`).join('')}
       </div>
-      <button id="edit-response-btn" class="btn btn-edit">Editar esta respuesta</button>
     </div>
   `;
 }
@@ -861,7 +860,7 @@ function renderCarouselSlide() {
 function setupCarouselEvents() {
   const prevBtn = document.getElementById('carousel-prev');
   const nextBtn = document.getElementById('carousel-next');
-  const editBtn = document.getElementById('edit-response-btn');
+  const editText = document.getElementById('edit-response-text');
   const indicators = document.querySelectorAll('.indicator');
   
   if (prevBtn) {
@@ -870,8 +869,8 @@ function setupCarouselEvents() {
   if (nextBtn) {
     nextBtn.addEventListener('click', () => navigateCarousel(1));
   }
-  if (editBtn) {
-    editBtn.addEventListener('click', editCurrentResponse);
+  if (editText) {
+    editText.addEventListener('click', editCurrentResponse);
   }
   
   indicators.forEach(ind => {
@@ -925,10 +924,10 @@ function updatePrevButtonVisibility() {
     
     const isPreview = currentWritingStep === WRITING_STEPS.PREVIEW;
     const isTask2 = currentWritingStep === WRITING_STEPS.TASK2;
-    previewBtn?.classList.toggle('hidden', !isPreview);
+    previewBtn?.classList.toggle('hidden', true);
     submitBtn?.classList.toggle('hidden', !isPreview);
     checkBtn?.classList.toggle('hidden', true);
-    nextBtn?.classList.toggle('hidden', isPreview);
+    nextBtn?.classList.toggle('hidden', true);
     restartBtn.textContent = isPreview ? 'Enviar' : 'Reiniciar';
     
     if (skipBtn) {
@@ -1718,30 +1717,17 @@ function initEventListeners() {
 
 function goHome() {
   stopTimer();
-  currentQuestionIndex = 0;
-  selectedOptionIndex = null;
-  score = { WRITING: 0, LISTENING: 0, READING_AND_GRAMMAR: 0, SPEAKING: 0 };
-  answeredQuestions.clear();
-  shuffledQuestions = [];
-  currentSection = null;
-  currentExerciseIndex = 0;
-  currentAudioSrc = null;
-  currentAudioElement = null;
-  currentGroup = null;
-  sectionResponses = [];
-  currentWritingStep = 0;
-  currentPreviewIndex = 0;
-
+  
   document.removeEventListener('keydown', handleCarouselKeydown);
 
-  getElement('email-btn').classList.remove('hidden');
-  getElement('quiz-view').classList.add('hidden');
-  getElement('results-container').classList.add('hidden');
-  getElement('category-select').classList.remove('hidden');
-  getElement('section-instructions-panel').classList.add('hidden');
-  getElement('back-modal').classList.add('hidden');
-  getElement('confirm-modal').classList.add('hidden');
-  getElement('time-modal').classList.add('hidden');
+  getElement('email-btn')?.classList.remove('hidden');
+  getElement('quiz-view')?.classList.add('hidden');
+  getElement('results-container')?.classList.add('hidden');
+  getElement('category-select')?.classList.remove('hidden');
+  getElement('section-instructions-panel')?.classList.add('hidden');
+  getElement('back-modal')?.classList.add('hidden');
+  getElement('confirm-modal')?.classList.add('hidden');
+  getElement('time-modal')?.classList.add('hidden');
   
   window.history.pushState('', document.title, window.location.pathname);
   renderCategorySelect();

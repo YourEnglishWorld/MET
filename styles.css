@@ -1094,6 +1094,17 @@ h1 {
   text-align: center;
 }
 
+.edit-link {
+  font-size: 0.9rem;
+  color: #6366f1;
+  cursor: pointer;
+  margin-left: 10px;
+}
+
+.edit-link:hover {
+  text-decoration: underline;
+}
+
 .carousel-viewer {
   display: flex;
   align-items: center;
