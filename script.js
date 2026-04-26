@@ -582,12 +582,15 @@ function startFromSection(section) {
 }
 
 function beginQuiz(section) {
+  const saved = loadProgress();
+  const hasSavedProgress = saved && saved.currentSection === section && saved.currentIndex !== undefined;
+  
   currentSection = section;
-  currentExerciseIndex = 0;
-  currentQuestionIndex = 0;
+  currentExerciseIndex = hasSavedProgress ? saved.currentExerciseIndex : 0;
+  currentQuestionIndex = hasSavedProgress ? saved.currentIndex : 0;
   selectedOptionIndex = null;
-  score = { WRITING: 0, LISTENING: 0, READING_AND_GRAMMAR: 0, SPEAKING: 0 };
-  answeredQuestions.clear();
+  score = hasSavedProgress ? saved.score : { WRITING: 0, LISTENING: 0, READING_AND_GRAMMAR: 0, SPEAKING: 0 };
+  answeredQuestions = hasSavedProgress ? new Set(saved.answeredQuestions) : new Set();
   currentAudioSrc = null;
   currentAudioElement = null;
 
@@ -598,9 +601,23 @@ function beginQuiz(section) {
       alert('La sección de Writing aún no tiene contenido.');
       return;
     }
-    currentGroup = shuffleArray([...quizData.WRITING.groups])[0];
-    sectionResponses = [];
-    currentWritingStep = WRITING_STEPS.TASK1_Q1;
+    
+    if (hasSavedProgress && saved.writingGroupId) {
+      const group = quizData.WRITING.groups.find(g => g.id === saved.writingGroupId);
+      if (group) {
+        currentGroup = group;
+        sectionResponses = saved.writingResponses || [];
+        currentWritingStep = saved.writingStep || WRITING_STEPS.TASK1_Q1;
+      } else {
+        currentGroup = shuffleArray([...quizData.WRITING.groups])[0];
+        sectionResponses = [];
+        currentWritingStep = WRITING_STEPS.TASK1_Q1;
+      }
+    } else {
+      currentGroup = shuffleArray([...quizData.WRITING.groups])[0];
+      sectionResponses = [];
+      currentWritingStep = WRITING_STEPS.TASK1_Q1;
+    }
     currentPreviewIndex = 0;
     
     getElement('category-select').classList.add('hidden');
@@ -612,7 +629,9 @@ function beginQuiz(section) {
     renderWritingStep();
     updatePrevButtonVisibility();
     startTimer(section);
-    updateHash('WRITING', 'task1', 1);
+    const taskPart = currentWritingStep === WRITING_STEPS.TASK2 ? 'task2' : 'task1';
+    const qNum = currentWritingStep === WRITING_STEPS.TASK2 ? 1 : currentWritingStep + 1;
+    updateHash('WRITING', taskPart, qNum);
     return;
   }
 
@@ -1191,7 +1210,13 @@ function loadQuestion() {
   getElement('check-btn')?.classList.remove('hidden');
   getElement('next-btn')?.classList.add('hidden');
 
-  selectedOptionIndex = null;
+  if (answeredQuestions.has(currentQuestionIndex)) {
+    const options = document.querySelectorAll('.option');
+    options.forEach(opt => opt.classList.add('selected', 'disabled'));
+    getElement('check-btn')?.classList.add('hidden');
+    getElement('next-btn')?.classList.remove('hidden');
+  }
+  
   updateProgressBar();
   saveProgress();
   updatePrevButtonVisibility();
