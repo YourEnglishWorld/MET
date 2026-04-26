@@ -285,8 +285,9 @@ h1 {
 }
 
 #controls {
+  position: relative;
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
@@ -298,11 +299,17 @@ h1 {
 }
 
 #prev-btn {
-  margin-right: auto;
+  position: absolute;
+  left: 0;
 }
 
 #next-btn {
-  margin-left: auto;
+  margin-left: 0;
+}
+
+#skip-btn {
+  position: absolute;
+  right: 0;
 }
 
 .btn {

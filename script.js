@@ -535,27 +535,29 @@ function renderCategorySelect() {
     
     if (sec.key === 'WRITING' && data && data.groups) {
       count = data.groups.length;
-      label = `${sec.name} - ${count} ejercicios`;
+      const saved = loadProgress();
+      const answered = (saved && saved.currentSection === 'WRITING' && saved.writingResponses) 
+        ? saved.writingResponses.filter(r => r && r.length > 0).length 
+        : 0;
+      const total = 4;
+      const percent = answered > 0 ? Math.round((answered / total) * 100) : 0;
+      label = percent > 0 ? `${count} ejercicios • ${percent}%` : `${count} ejercicios`;
     } else if (data && data.length > 0) {
       count = data.length;
-      label = `${sec.name} - ${count} preguntas`;
+      const saved = loadProgress();
+      const answered = (saved && saved.currentSection === sec.key && saved.answeredQuestions) 
+        ? saved.answeredQuestions.size 
+        : 0;
+      const percent = answered > 0 ? Math.round((answered / count) * 100) : 0;
+      label = percent > 0 ? `${count} preguntas • ${percent}%` : `${count} preguntas`;
     } else {
       label = `${sec.name} - Próximamente`;
     }
 
     const btn = document.createElement('button');
     btn.className = 'category-btn';
-    function formatSectionName(key) {
-  const names = {
-    'WRITING': 'WRITING',
-    'LISTENING': 'LISTENING',
-    'READING_AND_GRAMMAR': 'READING AND GRAMMAR',
-    'SPEAKING': 'SPEAKING'
-  };
-  return names[key] || key.replace(/_/g, ' ');
-}
-
-    btn.innerHTML = `<strong>${formatSectionName(sec.key)}</strong><span>${label}</span>`;
+    
+    btn.innerHTML = `<strong>${sec.name}</strong><span>${label}</span>`;
     
     if (count === 0) {
       btn.style.opacity = '0.5';
@@ -565,9 +567,6 @@ function renderCategorySelect() {
     btn.addEventListener('click', () => startFromSection(sec.key));
     container.appendChild(btn);
   });
-
-  const savedProgress = loadProgress();
-  getElement('continue-btn').classList.toggle('hidden', !savedProgress);
 }
 
 function startFromSection(section) {
