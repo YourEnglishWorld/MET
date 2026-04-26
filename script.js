@@ -923,16 +923,16 @@ function updatePrevButtonVisibility() {
     prevBtn?.classList.toggle('hidden', currentWritingStep === WRITING_STEPS.TASK1_Q1);
     
     const isPreview = currentWritingStep === WRITING_STEPS.PREVIEW;
-    const isTask2 = currentWritingStep === WRITING_STEPS.TASK2;
+    const isLastQuestion = currentWritingStep === WRITING_STEPS.TASK2;
     previewBtn?.classList.toggle('hidden', true);
     submitBtn?.classList.toggle('hidden', !isPreview);
     checkBtn?.classList.toggle('hidden', true);
-    nextBtn?.classList.toggle('hidden', isTask2 || isPreview);
+    nextBtn?.classList.toggle('hidden', isLastQuestion || isPreview);
     restartBtn.textContent = isPreview ? 'Enviar' : 'Reiniciar';
     
     if (skipBtn) {
-      skipBtn.classList.toggle('hidden', !isTask2);
-      if (isTask2) {
+      skipBtn.classList.toggle('hidden', !isLastQuestion);
+      if (isLastQuestion) {
         skipBtn.textContent = 'Finalizar';
         skipBtn.classList.remove('btn-secondary');
         skipBtn.classList.add('btn-primary');
