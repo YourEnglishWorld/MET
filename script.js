@@ -934,53 +934,65 @@ function editCurrentResponse() {
 
 function updatePrevButtonVisibility() {
   const prevBtn = getElement('prev-btn');
-  const previewBtn = getElement('preview-btn');
   const submitBtn = getElement('submit-section-btn');
   const checkBtn = getElement('check-btn');
   const nextBtn = getElement('next-btn');
   const skipBtn = getElement('skip-btn');
+  const controlsCenter = document.querySelector('.controls-center');
   
   if (currentSection === 'WRITING') {
-    prevBtn?.classList.toggle('hidden', currentWritingStep === WRITING_STEPS.TASK1_Q1);
-    
     const isPreview = currentWritingStep === WRITING_STEPS.PREVIEW;
     const isLastQuestion = currentWritingStep === WRITING_STEPS.TASK2;
-    previewBtn?.classList.toggle('hidden', true);
-    submitBtn?.classList.toggle('hidden', !isPreview);
-    checkBtn?.classList.toggle('hidden', true);
-    nextBtn?.classList.toggle('hidden', isLastQuestion || isPreview);
     
-    if (skipBtn) {
-      skipBtn.classList.toggle('hidden', !isLastQuestion);
-      if (isLastQuestion) {
-        skipBtn.textContent = 'Finalizar';
-        skipBtn.classList.remove('btn-secondary');
-        skipBtn.classList.add('btn-primary');
-      } else {
+    if (isPreview) {
+      prevBtn?.classList.add('hidden');
+      checkBtn?.classList.add('hidden');
+      nextBtn?.classList.add('hidden');
+      submitBtn?.classList.remove('hidden');
+      if (skipBtn) skipBtn.classList.add('hidden');
+    } else if (isLastQuestion) {
+      prevBtn?.classList.remove('hidden');
+      checkBtn?.classList.add('hidden');
+      nextBtn?.classList.add('hidden');
+      submitBtn?.classList.add('hidden');
+      skipBtn?.classList.remove('hidden');
+      skipBtn.textContent = 'Finalizar';
+      skipBtn.classList.remove('btn-secondary');
+      skipBtn.classList.add('btn-primary');
+    } else {
+      prevBtn?.classList.toggle('hidden', currentWritingStep === WRITING_STEPS.TASK1_Q1);
+      checkBtn?.classList.add('hidden');
+      nextBtn?.classList.remove('hidden');
+      submitBtn?.classList.add('hidden');
+      if (skipBtn) {
+        skipBtn.classList.remove('hidden');
         skipBtn.textContent = '⏭ Finalizar';
         skipBtn.classList.remove('btn-primary');
         skipBtn.classList.add('btn-secondary');
       }
     }
   } else if (currentSection) {
-    prevBtn?.classList.toggle('hidden', currentQuestionIndex === 0);
-    
     const isLast = currentQuestionIndex >= shuffledQuestions.length - 1;
-    previewBtn?.classList.toggle('hidden', !isLast);
-    submitBtn?.classList.toggle('hidden', !isLast);
-    checkBtn?.classList.toggle('hidden', isLast);
-    nextBtn?.classList.toggle('hidden', isLast);
     
-    if (skipBtn) {
-      skipBtn.classList.toggle('hidden', !isLast);
-      if (!isLast) {
+    if (isLast) {
+      prevBtn?.classList.remove('hidden');
+      checkBtn?.classList.add('hidden');
+      nextBtn?.classList.add('hidden');
+      submitBtn?.classList.remove('hidden');
+      skipBtn?.classList.remove('hidden');
+      skipBtn.textContent = 'Finalizar';
+      skipBtn.classList.remove('btn-secondary');
+      skipBtn.classList.add('btn-primary');
+    } else {
+      prevBtn?.classList.toggle('hidden', currentQuestionIndex === 0);
+      checkBtn?.classList.remove('hidden');
+      nextBtn?.classList.remove('hidden');
+      submitBtn?.classList.add('hidden');
+      if (skipBtn) {
+        skipBtn.classList.remove('hidden');
         skipBtn.textContent = '⏭ Skip';
         skipBtn.classList.remove('btn-primary');
         skipBtn.classList.add('btn-secondary');
-      } else {
-        skipBtn.textContent = 'Finalizar';
-        skipBtn.classList.remove('btn-secondary');
-        skipBtn.classList.add('btn-primary');
       }
     }
   }
@@ -1495,6 +1507,13 @@ function initEventListeners() {
   getElement('check-btn')?.addEventListener('click', checkAnswer);
   getElement('next-btn')?.addEventListener('click', nextQuestion);
   getElement('prev-btn')?.addEventListener('click', previousQuestion);
+  getElement('submit-section-btn')?.addEventListener('click', () => {
+    if (currentSection === 'WRITING') {
+      submitWritingResponses();
+    } else {
+      showResults();
+    }
+  });
   getElement('email-btn')?.addEventListener('click', sendEmail);
   getElement('results-home-btn')?.addEventListener('click', goHome);
   getElement('home-btn')?.addEventListener('click', goHome);
