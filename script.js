@@ -927,7 +927,7 @@ function updatePrevButtonVisibility() {
     previewBtn?.classList.toggle('hidden', true);
     submitBtn?.classList.toggle('hidden', !isPreview);
     checkBtn?.classList.toggle('hidden', true);
-    nextBtn?.classList.toggle('hidden', true);
+    nextBtn?.classList.toggle('hidden', isTask2 || isPreview);
     restartBtn.textContent = isPreview ? 'Enviar' : 'Reiniciar';
     
     if (skipBtn) {
