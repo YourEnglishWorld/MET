@@ -1042,9 +1042,6 @@ function updatePrevButtonVisibility() {
         skipBtn.classList.add('btn-secondary');
       }
     }
-  }
-}
-    }
   } else if (currentSection) {
     const isLast = currentQuestionIndex >= shuffledQuestions.length - 1;
     const alreadyAnswered = answeredQuestions.has(currentQuestionIndex);
@@ -1140,12 +1137,15 @@ function saveCurrentWritingResponse() {
     sectionResponses[3] = value;
     logWritingResponse(1, 2, value);
   }
+  
+  saveProgress();
 }
 
 function nextSectionStep() {
   if (currentSection !== 'WRITING') return;
   
   saveCurrentWritingResponse();
+  saveProgress();
   
   let taskPart = 'task1';
   let qNum = 1;
