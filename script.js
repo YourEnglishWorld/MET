@@ -291,7 +291,10 @@ function saveProgress() {
     currentExerciseIndex: currentExerciseIndex,
     score: score,
     answeredQuestions: Array.from(answeredQuestions),
-    questionsOrder: shuffledQuestions.map(q => ({ exerciseIndex: q.exerciseIndex, questionIndex: q.questionIndex }))
+    questionsOrder: shuffledQuestions.map(q => ({ exerciseIndex: q.exerciseIndex, questionIndex: q.questionIndex })),
+    writingStep: currentWritingStep,
+    writingResponses: sectionResponses,
+    writingGroupId: currentGroup?.id || null
   };
   localStorage.setItem('metQuizProgress', JSON.stringify(progress));
 }
@@ -1647,7 +1650,6 @@ async function init() {
   loadUser();
   updateUserDisplay();
   initEventListeners();
-  setupConfirmModalListeners();
 
   const loaded = await loadAllData();
 
@@ -1655,20 +1657,6 @@ async function init() {
     loadFromHash();
   } else {
     renderCategorySelect();
-  }
-  
-  const saved = loadProgress();
-  if (saved && saved.currentSection && !window.location.hash) {
-    getElement('continue-btn')?.classList.remove('hidden');
-  }
-  
-  if (!loaded) {
-    document.getElementById('category-select').innerHTML = `
-      <div style="padding: 20px; background: #fff3cd; border-radius: 12px; color: #856404; margin: 20px 0;">
-        <h3>⚠️ Advertencia</h3>
-        <p>Algunos datos no se cargaron correctamente.</p>
-      </div>
-    `;
   }
 }
 
