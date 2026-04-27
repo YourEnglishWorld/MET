@@ -308,19 +308,13 @@ function clearProgress() {
   localStorage.removeItem('metQuizProgress');
 }
 
-function resetProgress(section) {
+function resetAllProgress() {
   const modal = getElement('confirm-modal');
   const modalText = getElement('confirm-text');
   const modalOk = getElement('confirm-ok');
   const modalCancel = getElement('confirm-cancel');
   
-  const sectionName = section || (loadProgress() && loadProgress().currentSection);
-  
-  if (sectionName) {
-    modalText.textContent = `Reset progress for ${sectionName}? This cannot be undone.`;
-  } else {
-    modalText.textContent = 'Reset all progress? This cannot be undone.';
-  }
+  modalText.textContent = 'Reset all progress? This cannot be undone.';
   
   modal.classList.remove('hidden');
   
@@ -328,24 +322,42 @@ function resetProgress(section) {
     modal.classList.add('hidden');
     clearProgress();
     score = { WRITING: 0, LISTENING: 0, READING_AND_GRAMMAR: 0, SPEAKING: 0 };
-    answeredQuestions.clear();
+    answeredQuestions = new Set();
     sectionResponses = [];
-    currentWritingStep = WRITING_STEPS.TASK1_Q1;
+    currentWritingStep = 0;
     currentQuestionIndex = 0;
-    
-    if (section) {
-      beginQuiz(section);
-    } else {
-      renderCategorySelect();
-    }
-  };
-  
-  const handleCancel = () => {
-    modal.classList.add('hidden');
+    renderCategorySelect();
   };
   
   modalOk.onclick = handleOk;
-  modalCancel.onclick = handleCancel;
+  modalCancel.onclick = () => modal.classList.add('hidden');
+}
+
+function resetSectionProgress() {
+  if (!currentSection) return;
+  
+  const modal = getElement('confirm-modal');
+  const modalText = getElement('confirm-text');
+  const modalOk = getElement('confirm-ok');
+  const modalCancel = getElement('confirm-cancel');
+  
+  modalText.textContent = `Reset progress for ${currentSection}? This cannot be undone.`;
+  
+  modal.classList.remove('hidden');
+  
+  const handleOk = () => {
+    modal.classList.add('hidden');
+    clearProgress();
+    score = { WRITING: 0, LISTENING: 0, READING_AND_GRAMMAR: 0, SPEAKING: 0 };
+    answeredQuestions = new Set();
+    sectionResponses = [];
+    currentWritingStep = 0;
+    currentQuestionIndex = 0;
+    beginQuiz(currentSection);
+  };
+  
+  modalOk.onclick = handleOk;
+  modalCancel.onclick = () => modal.classList.add('hidden');
 }
 
 function getElement(id) {
@@ -1607,11 +1619,9 @@ function initEventListeners() {
   getElement('email-btn')?.addEventListener('click', sendEmail);
   getElement('results-home-btn')?.addEventListener('click', goHome);
   getElement('home-btn')?.addEventListener('click', goHome);
-  getElement('reset-btn')?.addEventListener('click', () => {
-    const saved = loadProgress();
-    const sectionToReset = currentSection || (saved && saved.currentSection) ? currentSection : null;
-    resetProgress(sectionToReset);
-  });
+  
+  getElement('reset-all-btn')?.addEventListener('click', resetAllProgress);
+  getElement('reset-btn')?.addEventListener('click', resetSectionProgress);
   
   getElement('time-home-btn')?.addEventListener('click', () => {
     stopTimer();
