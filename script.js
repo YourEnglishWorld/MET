@@ -314,8 +314,10 @@ function resetProgress(section) {
   const modalOk = getElement('confirm-ok');
   const modalCancel = getElement('confirm-cancel');
   
-  if (section) {
-    modalText.textContent = `Reset progress for ${section}? This cannot be undone.`;
+  const sectionName = section || (loadProgress() && loadProgress().currentSection);
+  
+  if (sectionName) {
+    modalText.textContent = `Reset progress for ${sectionName}? This cannot be undone.`;
   } else {
     modalText.textContent = 'Reset all progress? This cannot be undone.';
   }
@@ -1606,7 +1608,9 @@ function initEventListeners() {
   getElement('results-home-btn')?.addEventListener('click', goHome);
   getElement('home-btn')?.addEventListener('click', goHome);
   getElement('reset-btn')?.addEventListener('click', () => {
-    resetProgress(currentSection);
+    const saved = loadProgress();
+    const sectionToReset = currentSection || (saved && saved.currentSection) ? currentSection : null;
+    resetProgress(sectionToReset);
   });
   
   getElement('time-home-btn')?.addEventListener('click', () => {
