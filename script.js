@@ -1779,6 +1779,10 @@ function initEventListeners() {
 
 function goHome() {
   stopTimer();
+  
+  if (currentSection === 'WRITING') {
+    saveCurrentWritingResponse();
+  }
   saveProgress();
   
   document.removeEventListener('keydown', handleCarouselKeydown);

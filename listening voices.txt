@@ -1,17 +1,11 @@
-AVA - MUJER
+CONVERSATIONS:
+AVA	MUJER
+ANDREWMULTILINGUAL	HOMBRE
 
-ANA - NIÑA
-ANDREWMULTILINGUAL - HOMBRE
+INSTRUCTIONS/QUESTIONS
+EMMA	MUJER
+ROGER	HOMBRE
 
-EMMA - MUJER
-
-ROGER - HOMBRE
-STEFFAN - HOMBRE
-
-Part 1
-In this part of the test, you will hear short conversations between two people. After each conversation, you will hear a question about it. Choose the answer to the question.
-
-The conversations and questions will not be repeated. Please listen carefully.
-
-
-
+EXTRAS:
+STEFFAN	HOMBRE
+ANA	NIÑA

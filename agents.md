@@ -53,6 +53,17 @@ The MET exam is divided into **4 parts**:
 
 ---
 
+## Section Times (in minutes)
+
+| Section                | Time |
+|------------------------|------|
+| WRITING                | 45   |
+| LISTENING              | 35   |
+| READING AND GRAMMAR   | 65   |
+| SPEAKING               | 10   |
+
+---
+
 ## Design Guidelines
 
 - Minimalist, elegant design with smooth animations
