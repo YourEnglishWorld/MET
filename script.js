@@ -616,34 +616,6 @@ function updateProgressBar() {
 }
 
 function updateWritingProgress() {
-  const writingData = quizData.WRITING;
-  
-  let progressText = '';
-  let percentage = 0;
-
-  switch (currentWritingStep) {
-    case WRITING_STEPS.TASK1_Q1:
-      progressText = 'Task 1: Q1/3';
-      percentage = 10;
-      break;
-    case WRITING_STEPS.TASK1_Q2:
-      progressText = 'Task 1: Q2/3';
-      percentage = 30;
-      break;
-    case WRITING_STEPS.TASK1_Q3:
-      progressText = 'Task 1: Q3/3';
-      percentage = 50;
-      break;
-    case WRITING_STEPS.TASK2:
-      progressText = 'Task 2: Essay';
-      percentage = 75;
-      break;
-    case WRITING_STEPS.PREVIEW:
-      progressText = 'Revisar';
-      percentage = 100;
-      break;
-  }
-
   getElement('category-badge').textContent = getSectionBadge(currentPartKey);
   
   let progressText = '';
