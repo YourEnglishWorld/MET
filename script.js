@@ -97,10 +97,6 @@ function updateHash(partKey, qNum) {
   }
 }
 
-function updateWritingHash(taskPart, qNum) {
-  window.location.hash = formatWritingHash(taskPart, qNum);
-}
-
 function parseHash() {
   const hash = window.location.hash.slice(1);
   if (!hash || hash === '/') return null;
@@ -125,14 +121,7 @@ function parseHash() {
   return { section: sectionKey, parentSection, taskPart, qNum, hash };
 }
 
-function updateHash(section, taskPart, qNum) {
-  const config = SECTION_CONFIG[section];
-  if (config) {
-    window.location.hash = formatHash(config.name, taskPart, qNum);
-  }
-}
-
-function getProgressKey(section, taskPart, qNum) {
+function getProgressKey(partKey, qNum) {
   const config = SECTION_CONFIG[section];
   if (config) {
     return `${config.name}_${taskPart}_q${qNum.toString().padStart(2, '0')}`;
@@ -149,7 +138,7 @@ function saveAnswerToHash(section, taskPart, qNum, answer) {
   localStorage.setItem('metQuizProgress', JSON.stringify(saved));
 }
 
-function getAnswerFromHash(section, taskPart, qNum) {
+function getAnswerFromHash(partKey, qNum) {
   const key = getProgressKey(section, taskPart, qNum);
   const saved = JSON.parse(localStorage.getItem('metQuizProgress') || '{}');
   return saved.answers ? saved.answers[key] : null;
@@ -849,24 +838,7 @@ function beginListening(section, saved, config) {
   loadQuestion();
   updatePrevButtonVisibility();
   startTimer('LISTENING');
-  updateHash(section, `q01`);
-}
-
-  shuffledQuestions = questions.map((q, i) => ({
-    ...shuffleOptions(q),
-    questionIndex: i
-  }));
-
-  getElement('category-select').classList.add('hidden');
-  getElement('quiz-view').classList.remove('hidden');
-  getElement('results-container').classList.add('hidden');
-
-  logActivity('INICIO', `Sección: ${section}`);
-  loadQuestion();
-  updatePrevButtonVisibility();
-  startTimer(section);
-  const qNum = currentQuestionIndex + 1;
-  updateHash(section, `part${Math.ceil(qNum / 20)}`, qNum);
+  updateHash(section, 1);
 }
 
 function setupInstructionsPanel() {
@@ -1519,7 +1491,7 @@ function checkAnswer() {
 }
 
 function nextQuestion() {
-  if (currentSection === 'WRITING') {
+  if (currentPartKey && currentPartKey.startsWith('WRITING')) {
     nextSectionStep();
     return;
   }
@@ -1533,15 +1505,12 @@ function nextQuestion() {
   } else {
     loadQuestion();
     resumeTimer();
-    const config = SECTION_CONFIG[currentSection];
-    if (config) {
-      updateHash(currentSection, `part${Math.ceil(qNum / 20)}`, qNum);
-    }
+    updateHash(currentPartKey, qNum);
   }
 }
 
 function previousQuestion() {
-  if (currentSection === 'WRITING') {
+  if (currentPartKey && currentPartKey.startsWith('WRITING')) {
     if (currentWritingStep > 0) {
       if (currentWritingStep === WRITING_STEPS.PREVIEW) {
         currentWritingStep = WRITING_STEPS.TASK2;
@@ -1561,10 +1530,7 @@ function previousQuestion() {
     loadQuestion();
     resumeTimer();
     const qNum = currentQuestionIndex + 1;
-    const config = SECTION_CONFIG[currentSection];
-    if (config) {
-      updateHash(currentSection, `part${Math.ceil(qNum / 20)}`, qNum);
-    }
+    updateHash(currentPartKey, qNum);
   }
 }
 
@@ -1779,10 +1745,7 @@ function initEventListeners() {
         currentQuestionIndex = qNum - 1;
         loadQuestion();
       }
-      const config = SECTION_CONFIG[currentSection];
-      if (config) {
-        updateHash(currentSection, `part${Math.ceil(qNum / 20)}`, qNum);
-      }
+      updateHash(currentPartKey, qNum);
     }
   });
 
