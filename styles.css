@@ -1302,3 +1302,79 @@ h1 {
 #timer-ring.warning #timer-display {
   color: #dc3545;
 }
+
+/* Section Preview Styles */
+.preview-section {
+  padding: 10px 0;
+}
+
+.preview-section h3 {
+  font-size: 1.1rem;
+  color: #4f46e5;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.preview-list {
+  max-height: 400px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-right: 4px;
+}
+
+.preview-item {
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 12px 14px;
+  text-align: left;
+  border-left: 3px solid #e5e7eb;
+  transition: border-color 0.2s;
+}
+
+.preview-item.answered {
+  border-left-color: #4f46e5;
+  background: #f0f0ff;
+}
+
+.preview-item.unanswered {
+  border-left-color: #d1d5db;
+  background: #f3f4f6;
+}
+
+.preview-q-num {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #4f46e5;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.preview-q-text {
+  display: block;
+  font-size: 0.85rem;
+  color: #374151;
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+
+.preview-q-answer {
+  display: block;
+  font-size: 0.8rem;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.preview-item.answered .preview-q-answer {
+  color: #4f46e5;
+  font-weight: 600;
+  font-style: normal;
+}
+
+.preview-item.unanswered .preview-q-answer {
+  color: #ef4444;
+}

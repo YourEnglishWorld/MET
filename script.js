@@ -156,7 +156,11 @@ function getAnswerFromHash(partKey, qNum) {
   return saved.answers ? saved.answers[key] : null;
 }
 
+let hashNavigationLocked = false;
+
 function loadFromHash() {
+  if (hashNavigationLocked) return;
+  
   const parsed = parseHash();
   if (!parsed) {
     if (!currentSection) renderCategorySelect();
@@ -321,6 +325,7 @@ let timerRunning = false;
 let currentExerciseIndex = 0;
 let currentAudioSrc = null;
 let currentAudioElement = null;
+let sectionPreviewMode = false;
 
 let currentUser = null;
 let pendingSection = null;
@@ -745,6 +750,7 @@ function beginQuiz(section) {
   const saved = loadProgress();
   const config = SECTION_CONFIG[section];
   
+  sectionPreviewMode = false;
   currentPartKey = section;
   currentSection = getSectionKey(section) || section;
   currentPartQuestionIndex = 0;
@@ -1164,6 +1170,13 @@ function updatePrevButtonVisibility() {
       }
     }
   } else if (currentSection) {
+    if (sectionPreviewMode) {
+      prevBtn?.classList.add('hidden');
+      checkBtn?.classList.add('hidden');
+      nextBtn?.classList.add('hidden');
+      submitBtn?.classList.remove('hidden');
+      skipBtn?.classList.add('hidden');
+    } else {
     const isLast = currentQuestionIndex >= shuffledQuestions.length - 1;
     const alreadyAnswered = answeredQuestions.has(currentQuestionIndex);
     
@@ -1172,7 +1185,7 @@ function updatePrevButtonVisibility() {
       checkBtn?.classList.add('hidden');
       nextBtn?.classList.add('hidden');
       submitBtn?.classList.remove('hidden');
-      if (skipBtn) skipBtn.classList.add('hidden');
+      skipBtn?.classList.add('hidden');
     } else if (isLast && !alreadyAnswered) {
       prevBtn?.classList.remove('hidden');
       checkBtn?.classList.remove('hidden');
@@ -1189,10 +1202,13 @@ function updatePrevButtonVisibility() {
       submitBtn?.classList.add('hidden');
       if (skipBtn) {
         skipBtn.classList.remove('hidden');
-        skipBtn.textContent = '⏭ Skip';
+        skipBtn.textContent = '⏭ Finalizar';
         skipBtn.classList.remove('btn-primary');
         skipBtn.classList.add('btn-secondary');
       }
+    }
+    }
+  }
     }
   }
 }
@@ -1346,6 +1362,7 @@ function showWritingResults() {
 }
 
 function loadQuestion() {
+  sectionPreviewMode = false;
   const question = shuffledQuestions[currentQuestionIndex];
 
   getElement('quiz-container').classList.remove('fade-out');
@@ -1540,21 +1557,88 @@ function goToPreview() {
   }
   saveProgress();
   
+  hashNavigationLocked = true;
   window.location.hash = `#/${currentPartKey}/preview`;
+  hashNavigationLocked = false;
   
-  if (currentPartKey.startsWith('WRITING')) {
+  renderSectionPreview();
+}
+
+function renderSectionPreview() {
+  sectionPreviewMode = true;
+  
+  if (currentPartKey && currentPartKey.startsWith('WRITING')) {
     currentWritingStep = WRITING_STEPS.PREVIEW;
     renderWritingStep();
+    return;
   }
+  
+  getElement('category-select').classList.add('hidden');
+  getElement('quiz-view').classList.remove('hidden');
+  getElement('results-container').classList.add('hidden');
+  
+  const container = getElement('quiz-container');
+  container.classList.remove('fade-out');
+  void container.offsetWidth;
+  container.classList.add('fade-out');
+  setTimeout(() => {
+    container.classList.remove('fade-out');
+    container.style.animation = 'none';
+    void container.offsetWidth;
+    container.style.animation = 'fadeIn 0.5s ease';
+  }, 300);
+  
+  const config = SECTION_CONFIG[currentPartKey];
+  getElement('category-badge').textContent = config ? config.name.replace(/-/g, ' ').toUpperCase() : 'Preview';
+  getElement('audio-container').classList.add('hidden');
+  getElement('transcription-toggle').classList.add('hidden');
+  getElement('transcription-text').classList.add('hidden');
+  getElement('reading-text').classList.add('hidden');
+  
+  const saved = JSON.parse(localStorage.getItem('metQuizProgress') || '{}');
+  const savedAnswers = saved.answers || {};
+  
+  let html = '<div class="preview-section"><h3>Resumen de respuestas</h3>';
+  html += '<div class="preview-list">';
+  
+  shuffledQuestions.forEach((q, i) => {
+    const answered = answeredQuestions.has(i);
+    const progressKey = getProgressKey(currentPartKey, i + 1);
+    const savedAnswer = savedAnswers[progressKey];
+    
+    if (answered && savedAnswer) {
+      html += `<div class="preview-item answered">
+        <span class="preview-q-num">Pregunta ${i + 1}</span>
+        <span class="preview-q-text">${q.question}</span>
+        <span class="preview-q-answer">Tu respuesta: ${savedAnswer}</span>
+      </div>`;
+    } else {
+      html += `<div class="preview-item unanswered">
+        <span class="preview-q-num">Pregunta ${i + 1}</span>
+        <span class="preview-q-text">${q.question}</span>
+        <span class="preview-q-answer">Sin responder</span>
+      </div>`;
+    }
+  });
+  
+  html += '</div></div>';
+  
+  getElement('question-text').innerHTML = '';
+  getElement('question-text').classList.add('hidden');
+  getElement('options-container').innerHTML = html;
+  getElement('controls').classList.remove('hidden');
+  
   updatePrevButtonVisibility();
 }
 
 function showResults() {
   pauseTimer();
   
+  hashNavigationLocked = true;
   if (currentPartKey) {
     window.location.hash = `#/${currentPartKey}/results`;
   }
+  hashNavigationLocked = false;
   
   getElement('quiz-view').classList.add('hidden');
   getElement('results-container').classList.remove('hidden');
