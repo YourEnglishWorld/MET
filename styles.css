@@ -1378,3 +1378,36 @@ h1 {
 .preview-item.unanswered .preview-q-answer {
   color: #ef4444;
 }
+
+@media (max-width: 600px) {
+  #controls {
+    gap: 8px;
+    padding: 0 4px;
+  }
+
+  .btn {
+    padding: 10px 16px;
+    font-size: 0.8rem;
+  }
+
+  #prev-btn,
+  #skip-btn {
+    position: static;
+  }
+
+  #skip-btn {
+    order: 1;
+  }
+
+  .controls-center {
+    order: 0;
+  }
+
+  #prev-btn {
+    order: -1;
+  }
+
+  #controls {
+    justify-content: space-between;
+  }
+}

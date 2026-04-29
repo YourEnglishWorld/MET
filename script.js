@@ -53,6 +53,10 @@ function getSectionNameForBadge(partKey) {
   return partLabel ? `${sectionLabel} ${partLabel}` : sectionLabel;
 }
 
+function getSectionLabel(section) {
+  return section === 'READING_AND_GRAMMAR' ? 'READING AND GRAMMAR' : section;
+}
+
 const SECTION_TIMES = {
   WRITING: 45 * 60,
   LISTENING: 35 * 60,
@@ -1207,7 +1211,7 @@ function updatePrevButtonVisibility() {
       submitBtn?.classList.add('hidden');
       if (skipBtn) {
         skipBtn.classList.remove('hidden');
-        skipBtn.textContent = '⏭ Finalizar sección';
+        skipBtn.textContent = 'Task 2';
         skipBtn.classList.remove('btn-primary');
         skipBtn.classList.add('btn-secondary');
       }
@@ -1223,7 +1227,7 @@ function updatePrevButtonVisibility() {
       nextBtn?.classList.toggle('hidden', alreadyAnswered);
       submitBtn?.classList.remove('hidden');
       skipBtn?.classList.remove('hidden');
-      skipBtn.textContent = hasNextPart ? `${alreadyAnswered ? '' : '⏭ '}Siguiente: ${hasNextPart.name}` : 'Finalizar sección';
+      skipBtn.textContent = hasNextPart ? hasNextPart.name : 'Finalizar sección';
       skipBtn.classList.remove('btn-secondary');
       skipBtn.classList.add('btn-primary');
     } else {
@@ -1233,7 +1237,7 @@ function updatePrevButtonVisibility() {
       submitBtn?.classList.add('hidden');
       if (skipBtn) {
         skipBtn.classList.remove('hidden');
-        skipBtn.textContent = hasNextPart ? `⏭ Siguiente: ${hasNextPart.name}` : '⏭ Finalizar sección';
+        skipBtn.textContent = hasNextPart ? hasNextPart.name : 'Finalizar sección';
         skipBtn.classList.remove('btn-primary');
         skipBtn.classList.add('btn-secondary');
       }
@@ -1696,7 +1700,7 @@ function renderSectionPreview() {
   }, 300);
   
   const config = SECTION_CONFIG[currentPartKey];
-  getElement('category-badge').textContent = getSectionNameForBadge(currentPartKey) + ' — Preview';
+  getElement('category-badge').textContent = getSectionLabel(getSectionKey(currentPartKey)) + ' — Preview';
   getElement('audio-container').classList.add('hidden');
   getElement('transcription-toggle').classList.add('hidden');
   getElement('transcription-text').classList.add('hidden');
