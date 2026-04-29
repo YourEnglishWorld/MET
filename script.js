@@ -297,6 +297,12 @@ let currentSection = null;
 let currentPartKey = null;
 let currentPartQuestionIndex = 0;
 let answersByPart = {};
+let timerInterval = null;
+let timerRemaining = 0;
+let timerRunning = false;
+let currentExerciseIndex = 0;
+let currentAudioSrc = null;
+let currentAudioElement = null;
 
 let currentUser = null;
 let pendingSection = null;
