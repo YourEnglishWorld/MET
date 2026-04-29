@@ -29,9 +29,29 @@ const SECTION_NAMES = {
   'speaking': 'SPEAKING'
 };
 
-const SECTION_KEYS_BY_NAME = Object.fromEntries(
-  Object.entries(SECTION_CONFIG).map(([key, config]) => [config.name, key])
-);
+function getPartKeyFromHashName(hashName) {
+  const sectionMatch = hashName.match(/^(writing|listening|reading|speaking)-/);
+  if (!sectionMatch) return hashName.toUpperCase().replace(/-/g, '_');
+  
+  const sectionBase = sectionMatch[1].toUpperCase();
+  const suffix = hashName.replace(sectionMatch[0], '');
+  
+  const partNum = suffix.match(/(?:part|task)(\d+)/i);
+  if (partNum) {
+    return `${sectionBase}_P${partNum[1]}`.replace('_P', sectionBase === 'WRITING' ? '_TASK' : '_P');
+  }
+  
+  return hashName.toUpperCase().replace(/-/g, '_');
+}
+
+function getSectionNameForBadge(partKey) {
+  const config = SECTION_CONFIG[partKey];
+  if (!config) return partKey;
+  const section = getSectionKey(partKey);
+  const sectionLabel = section === 'READING_AND_GRAMMAR' ? 'READING AND GRAMMAR' : section;
+  const partLabel = config.partId ? (section === 'WRITING' ? `Task ${config.partId}` : `Part ${config.partId}`) : '';
+  return partLabel ? `${sectionLabel} ${partLabel}` : sectionLabel;
+}
 
 const SECTION_TIMES = {
   WRITING: 45 * 60,
@@ -72,7 +92,14 @@ function getSectionKey(partKey) {
 }
 
 function formatHash(partKey, qNum) {
-  return `#/${partKey}/q${qNum.toString().padStart(2, '0')}`;
+  const config = SECTION_CONFIG[partKey];
+  if (!config) return `#/${partKey}/q${qNum.toString().padStart(2, '0')}`;
+  
+  const sectionName = getSectionKey(partKey);
+  const partNum = config.partId || 1;
+  const partName = sectionName === 'WRITING' ? `task${partNum}` : `part${partNum}`;
+  
+  return `#/${getSectionKey(partKey).toLowerCase()}-${partName}/q${qNum.toString().padStart(2, '0')}`;
 }
 
 function formatWritingHash(taskPart, qNum) {
@@ -95,7 +122,7 @@ function parseHash() {
   if (parts.length < 2) return null;
   
   const rawKey = parts[0];
-  const sectionKey = SECTION_KEYS_BY_NAME[rawKey] || rawKey;
+  const sectionKey = getPartKeyFromHashName(rawKey);
   
   if (parts[1] === 'preview') {
     const parentSection = getSectionKey(sectionKey);
@@ -613,7 +640,7 @@ function updateWritingProgress() {
       break;
   }
 
-  getElement('category-badge').textContent = 'WRITING';
+  getElement('category-badge').textContent = getSectionNameForBadge(currentPartKey);
   getElement('progress-text').textContent = progressText;
   getElement('progress-bar').style.width = percentage + '%';
 }
@@ -848,11 +875,11 @@ function beginListening(section, saved, config) {
   let audioGroups = [];
   
   if (partId === 1) {
-    partQuestions = partData.questions.map(q => ({ ...q, category: `Listening P${partId}` }));
+    partQuestions = partData.questions.map(q => ({ ...q, category: `${section.replace('_AND_GRAMMAR', '')} P${partId}` }));
   } else {
     audioGroups = partData.audioGroups || [];
     partQuestions = audioGroups.flatMap(group => 
-      group.questions.map(q => ({ ...q, groupNumber: group.number, mainAudio: group.mainAudio, extraAudio: q.extraAudio, category: `Listening P${partId}` }))
+      group.questions.map(q => ({ ...q, groupNumber: group.number, mainAudio: group.mainAudio, extraAudio: q.extraAudio, category: `${section.replace('_AND_GRAMMAR', '')} P${partId}` }))
     );
   }
   
@@ -1382,7 +1409,14 @@ function loadQuestion() {
     getElement('quiz-container').style.animation = 'fadeIn 0.5s ease';
   }, 300);
 
-  getElement('category-badge').textContent = question.questionCategory || question.category || 'Listening';
+  getElement('category-badge').textContent = getSectionNameForBadge(currentPartKey);
+  const qNum = currentQuestionIndex + 1;
+  const total = shuffledQuestions.length;
+  const config = SECTION_CONFIG[currentPartKey];
+  const partLabel = config && config.partId ? (getSectionKey(currentPartKey) === 'WRITING' ? `Task ${config.partId}` : `Part ${config.partId}`) : '';
+  getElement('progress-text').textContent = partLabel ? `${partLabel}: Q${qNum}/${total}` : `Q${qNum}/${total}`;
+  const percent = total > 0 ? Math.round(((qNum) / total) * 100) : 0;
+  getElement('progress-bar').style.width = percent + '%';
 
   getElement('transcription-toggle').innerHTML = '';
   getElement('transcription-toggle').classList.add('hidden');
@@ -1548,11 +1582,11 @@ function loadMcPart(partKey, skipCheck) {
   
   let partQuestions = [];
   if (config.partId === 1) {
-    partQuestions = partData.questions.map(q => ({ ...q, category: `${section} P${config.partId}` }));
+    partQuestions = partData.questions.map(q => ({ ...q, category: `${section.replace('_AND_GRAMMAR', '')} P${config.partId}` }));
   } else {
     const audioGroups = partData.audioGroups || [];
     partQuestions = audioGroups.flatMap(group =>
-      group.questions.map(q => ({ ...q, groupNumber: group.number, mainAudio: group.mainAudio, extraAudio: q.extraAudio, category: `${section} P${config.partId}` }))
+      group.questions.map(q => ({ ...q, groupNumber: group.number, mainAudio: group.mainAudio, extraAudio: q.extraAudio, category: `${section.replace('_AND_GRAMMAR', '')} P${config.partId}` }))
     );
   }
   
@@ -1564,7 +1598,6 @@ function loadMcPart(partKey, skipCheck) {
   
   setupInstructionsPanel();
   loadQuestion();
-  resumeTimer();
   updateHash(currentPartKey, 1);
   updatePrevButtonVisibility();
   return true;
@@ -1581,6 +1614,7 @@ function navigateToNextPart() {
   
   saveProgress();
   loadMcPart(nextPart.key);
+  startTimer(currentSection);
 }
 
 function navigateToPart(partKey) {
@@ -1588,10 +1622,12 @@ function navigateToPart(partKey) {
   
   const targetSection = getSectionKey(partKey);
   if (targetSection !== currentSection) return;
+  if (partKey === currentPartKey) return;
   
   pauseTimer();
   saveProgress();
   loadMcPart(partKey);
+  startTimer(currentSection);
 }
 
 function previousQuestion() {
@@ -1660,7 +1696,7 @@ function renderSectionPreview() {
   }, 300);
   
   const config = SECTION_CONFIG[currentPartKey];
-  getElement('category-badge').textContent = config ? config.name.replace(/-/g, ' ').toUpperCase() : 'Preview';
+  getElement('category-badge').textContent = getSectionNameForBadge(currentPartKey) + ' — Preview';
   getElement('audio-container').classList.add('hidden');
   getElement('transcription-toggle').classList.add('hidden');
   getElement('transcription-text').classList.add('hidden');
