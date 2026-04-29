@@ -29,6 +29,10 @@ const SECTION_NAMES = {
   'speaking': 'SPEAKING'
 };
 
+const SECTION_KEYS_BY_NAME = Object.fromEntries(
+  Object.entries(SECTION_CONFIG).map(([key, config]) => [config.name, key])
+);
+
 const SECTION_TIMES = {
   WRITING: 45 * 60,
   LISTENING: 35 * 60,
@@ -76,10 +80,7 @@ function formatWritingHash(taskPart, qNum) {
 }
 
 function updateHash(partKey, qNum) {
-  const config = SECTION_CONFIG[partKey];
-  if (config) {
-    window.location.hash = formatHash(config.name, qNum);
-  }
+  window.location.hash = formatHash(partKey, qNum);
 }
 
 function updateWritingHash(taskPart, qNum) {
@@ -93,19 +94,34 @@ function parseHash() {
   const parts = hash.split('/').filter(p => p);
   if (parts.length < 2) return null;
   
-  const [sectionKey, taskPart, qPart] = parts;
+  const rawKey = parts[0];
+  const sectionKey = SECTION_KEYS_BY_NAME[rawKey] || rawKey;
   
-  if (taskPart === 'preview') {
+  if (parts[1] === 'preview') {
     const parentSection = getSectionKey(sectionKey);
     return { section: sectionKey, parentSection, taskPart: 'preview', qNum: null, hash };
   }
   
+  if (parts[1] === 'results') {
+    const parentSection = getSectionKey(sectionKey);
+    return { section: sectionKey, parentSection, taskPart: 'results', qNum: null, hash };
+  }
+  
+  const qMatch = parts[1].match(/^q(\d+)$/);
+  if (qMatch) {
+    const qNum = parseInt(qMatch[1], 10);
+    const parentSection = getSectionKey(sectionKey);
+    return { section: sectionKey, parentSection, taskPart: null, qNum, hash };
+  }
+  
   if (parts.length < 3) return null;
   
-  const qMatch = qPart.match(/q(\d+)/);
-  if (!qMatch) return null;
+  const taskPart = parts[1];
+  const qPart = parts[2];
+  const qMatch2 = qPart.match(/q(\d+)/);
+  if (!qMatch2) return null;
   
-  const qNum = parseInt(qMatch[1], 10);
+  const qNum = parseInt(qMatch2[1], 10);
   const parentSection = getSectionKey(sectionKey);
   return { section: sectionKey, parentSection, taskPart, qNum, hash };
 }
@@ -143,24 +159,53 @@ function getAnswerFromHash(partKey, qNum) {
 function loadFromHash() {
   const parsed = parseHash();
   if (!parsed) {
-    renderCategorySelect();
+    if (!currentSection) renderCategorySelect();
     return;
   }
   
-  const { section, taskPart } = parsed;
+  const { section, taskPart, qNum } = parsed;
   
-  // Si hay un part key válido en SECTION_CONFIG, delegar a beginQuiz()
-  if (section && SECTION_CONFIG[section]) {
-    if (!currentUser) {
-      showRegistrationModal();
+  if (!section || !SECTION_CONFIG[section]) {
+    if (!currentSection) renderCategorySelect();
+    return;
+  }
+  
+  if (!currentUser) {
+    showRegistrationModal();
+    return;
+  }
+  
+  if (taskPart === 'preview') {
+    if (currentPartKey !== section) {
+      beginQuiz(section);
+      setTimeout(() => goToPreview(), 100);
+    } else {
+      goToPreview();
+    }
+    return;
+  }
+  
+  if (taskPart === 'results') {
+    if (currentPartKey !== section) {
+      beginQuiz(section);
+      setTimeout(() => showResults(), 100);
+    } else {
+      showResults();
+    }
+    return;
+  }
+  
+  if (currentPartKey === section && qNum !== null) {
+    const targetIndex = qNum - 1;
+    if (targetIndex >= 0 && targetIndex < shuffledQuestions.length && targetIndex !== currentQuestionIndex) {
+      currentQuestionIndex = targetIndex;
+      loadQuestion();
       return;
     }
-    beginQuiz(section);
     return;
   }
   
-  // Para backward compatibility con hashes antiguas
-  renderCategorySelect();
+  beginQuiz(section);
 }
 
 window.addEventListener('hashchange', loadFromHash);
@@ -814,6 +859,7 @@ function beginListening(section, saved, config) {
   logActivity('INICIO', `LISTENING Part ${partId}`);
   loadQuestion();
   updatePrevButtonVisibility();
+  updateHash(section, 1);
   startTimer('LISTENING');
 }
 
@@ -1096,7 +1142,7 @@ function updatePrevButtonVisibility() {
       nextBtn?.classList.add('hidden');
       submitBtn?.classList.remove('hidden');
       if (skipBtn) skipBtn.classList.add('hidden');
-} else if (isLastQuestion) {
+    } else if (isLastQuestion) {
       prevBtn?.classList.remove('hidden');
       checkBtn?.classList.add('hidden');
       nextBtn?.classList.add('hidden');
@@ -1487,17 +1533,16 @@ function previousQuestion() {
 
 function goToPreview() {
   pauseTimer();
-  const config = SECTION_CONFIG[currentPartKey];
-  if (!config) return;
+  if (!currentPartKey) return;
   
-  if (currentPartKey && currentPartKey.startsWith('WRITING')) {
+  if (currentPartKey.startsWith('WRITING')) {
     saveCurrentWritingResponse();
   }
   saveProgress();
   
-  window.location.hash = `#/${config.name}/preview`;
+  window.location.hash = `#/${currentPartKey}/preview`;
   
-  if (currentPartKey && currentPartKey.startsWith('WRITING')) {
+  if (currentPartKey.startsWith('WRITING')) {
     currentWritingStep = WRITING_STEPS.PREVIEW;
     renderWritingStep();
   }
@@ -1507,9 +1552,8 @@ function goToPreview() {
 function showResults() {
   pauseTimer();
   
-  const config = SECTION_CONFIG[currentSection];
-  if (config) {
-    window.location.hash = `#/${config.name}/results`;
+  if (currentPartKey) {
+    window.location.hash = `#/${currentPartKey}/results`;
   }
   
   getElement('quiz-view').classList.add('hidden');
