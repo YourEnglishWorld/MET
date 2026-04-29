@@ -44,17 +44,17 @@ function getPartKeyFromHashName(hashName) {
   return hashName.toUpperCase().replace(/-/g, '_');
 }
 
-function getSectionNameForBadge(partKey) {
-  const config = SECTION_CONFIG[partKey];
-  if (!config) return partKey;
+function getSectionBadge(partKey) {
   const section = getSectionKey(partKey);
-  const sectionLabel = section === 'READING_AND_GRAMMAR' ? 'READING AND GRAMMAR' : section;
-  const partLabel = config.partId ? (section === 'WRITING' ? `Task ${config.partId}` : `Part ${config.partId}`) : '';
-  return partLabel ? `${sectionLabel} ${partLabel}` : sectionLabel;
+  if (!section) return partKey;
+  return section === 'READING_AND_GRAMMAR' ? 'READING AND GRAMMAR' : section;
 }
 
-function getSectionLabel(section) {
-  return section === 'READING_AND_GRAMMAR' ? 'READING AND GRAMMAR' : section;
+function getPartProgressText(partKey, qNum, total) {
+  const config = SECTION_CONFIG[partKey];
+  const section = getSectionKey(partKey);
+  const partLabel = config && config.partId ? (section === 'WRITING' ? `Task ${config.partId}` : `Part ${config.partId}`) : '';
+  return partLabel ? `${partLabel}: Q${qNum}/${total}` : `Q${qNum}/${total}`;
 }
 
 const SECTION_TIMES = {
@@ -644,9 +644,20 @@ function updateWritingProgress() {
       break;
   }
 
-  getElement('category-badge').textContent = getSectionNameForBadge(currentPartKey);
+  getElement('category-badge').textContent = getSectionBadge(currentPartKey);
+  
+  let progressText = '';
+  switch (currentWritingStep) {
+    case WRITING_STEPS.TASK1_Q1: progressText = 'Task 1: Q1/3'; break;
+    case WRITING_STEPS.TASK1_Q2: progressText = 'Task 1: Q2/3'; break;
+    case WRITING_STEPS.TASK1_Q3: progressText = 'Task 1: Q3/3'; break;
+    case WRITING_STEPS.TASK2: progressText = 'Task 2: Essay'; break;
+    case WRITING_STEPS.PREVIEW: progressText = 'Revisar'; break;
+  }
   getElement('progress-text').textContent = progressText;
-  getElement('progress-bar').style.width = percentage + '%';
+  
+  const progressMap = { [WRITING_STEPS.TASK1_Q1]: 10, [WRITING_STEPS.TASK1_Q2]: 30, [WRITING_STEPS.TASK1_Q3]: 50, [WRITING_STEPS.TASK2]: 75, [WRITING_STEPS.PREVIEW]: 100 };
+  getElement('progress-bar').style.width = (progressMap[currentWritingStep] || 0) + '%';
 }
 
 function flattenQuestions(category, data) {
@@ -1413,13 +1424,11 @@ function loadQuestion() {
     getElement('quiz-container').style.animation = 'fadeIn 0.5s ease';
   }, 300);
 
-  getElement('category-badge').textContent = getSectionNameForBadge(currentPartKey);
+  getElement('category-badge').textContent = getSectionBadge(currentPartKey);
   const qNum = currentQuestionIndex + 1;
   const total = shuffledQuestions.length;
-  const config = SECTION_CONFIG[currentPartKey];
-  const partLabel = config && config.partId ? (getSectionKey(currentPartKey) === 'WRITING' ? `Task ${config.partId}` : `Part ${config.partId}`) : '';
-  getElement('progress-text').textContent = partLabel ? `${partLabel}: Q${qNum}/${total}` : `Q${qNum}/${total}`;
-  const percent = total > 0 ? Math.round(((qNum) / total) * 100) : 0;
+  getElement('progress-text').textContent = getPartProgressText(currentPartKey, qNum, total);
+  const percent = total > 0 ? Math.round((qNum / total) * 100) : 0;
   getElement('progress-bar').style.width = percent + '%';
 
   getElement('transcription-toggle').innerHTML = '';
@@ -1700,7 +1709,7 @@ function renderSectionPreview() {
   }, 300);
   
   const config = SECTION_CONFIG[currentPartKey];
-  getElement('category-badge').textContent = getSectionLabel(getSectionKey(currentPartKey)) + ' — Preview';
+  getElement('category-badge').textContent = getSectionBadge(currentPartKey) + ' — Preview';
   getElement('audio-container').classList.add('hidden');
   getElement('transcription-toggle').classList.add('hidden');
   getElement('transcription-text').classList.add('hidden');
