@@ -86,17 +86,6 @@ function updateWritingHash(taskPart, qNum) {
   window.location.hash = formatWritingHash(taskPart, qNum);
 }
 
-function formatWritingHash(taskPart, qNum) {
-  return `#/writing-${taskPart}/q${qNum.toString().padStart(2, '0')}`;
-}
-
-function updateHash(partKey, qNum) {
-  const config = SECTION_CONFIG[partKey];
-  if (config) {
-    window.location.hash = formatHash(config.name, qNum);
-  }
-}
-
 function parseHash() {
   const hash = window.location.hash.slice(1);
   if (!hash || hash === '/') return null;
@@ -135,11 +124,18 @@ function saveAnswerToHash(answer) {
   saved.answers = saved.answers || {};
   saved.answers[key] = answer;
   saved.currentHash = window.location.hash;
+  saved.currentIndex = currentQuestionIndex;
+  saved.currentSection = currentSection;
+  saved.currentPartKey = currentPartKey;
+  saved.score = score;
+  saved.answeredQuestions = Array.from(answeredQuestions);
+  saved.answersByPart = answersByPart;
+  saved.timerRemaining = timerRemaining;
   localStorage.setItem('metQuizProgress', JSON.stringify(saved));
 }
 
 function getAnswerFromHash(partKey, qNum) {
-  const key = getProgressKey(section, taskPart, qNum);
+  const key = getProgressKey(partKey, qNum);
   const saved = JSON.parse(localStorage.getItem('metQuizProgress') || '{}');
   return saved.answers ? saved.answers[key] : null;
 }
@@ -904,9 +900,28 @@ function renderWritingStep() {
     getElement('check-btn').classList.add('hidden');
     getElement('next-btn').classList.add('hidden');
     getElement('prev-btn').classList.remove('hidden');
+    setupWritingTextareaEvents();
   }
   
   updatePrevButtonVisibility();
+}
+
+function setupWritingTextareaEvents() {
+  const textarea = document.getElementById('writing-textarea');
+  const counter = document.getElementById('char-count');
+  const counterContainer = document.querySelector('.char-counter');
+  
+  if (!textarea) return;
+  
+  const limit = textarea.classList.contains('writing-textarea-large') ? TASK2_CHAR_LIMIT : TASK1_CHAR_LIMIT;
+  
+  textarea.addEventListener('input', function() {
+    const count = this.value.length;
+    if (counter) counter.textContent = count;
+    if (counterContainer) counterContainer.classList.toggle('visible', count > limit * 0.9);
+  });
+  
+  textarea.focus();
 }
 
 function renderWritingTask1(qIndex) {
@@ -928,19 +943,6 @@ function renderWritingTask1(qIndex) {
         <span id="char-count">${charCount}</span> / ${TASK1_CHAR_LIMIT}
       </div>
     </div>
-    <script>
-      const textarea = document.getElementById('writing-textarea');
-      const counter = document.getElementById('char-count');
-      const counterContainer = document.querySelector('.char-counter');
-      
-      textarea.addEventListener('input', function() {
-        const count = this.value.length;
-        counter.textContent = count;
-        counterContainer.classList.toggle('visible', count > ${TASK1_CHAR_LIMIT * 0.9});
-      });
-      
-      textarea.focus();
-    </script>
   `;
 }
 
@@ -964,19 +966,6 @@ function renderWritingTask2() {
         <span id="char-count">${charCount}</span> / ${TASK2_CHAR_LIMIT}
       </div>
     </div>
-    <script>
-      const textarea = document.getElementById('writing-textarea');
-      const counter = document.getElementById('char-count');
-      const counterContainer = document.querySelector('.char-counter');
-      
-      textarea.addEventListener('input', function() {
-        const count = this.value.length;
-        counter.textContent = count;
-        counterContainer.classList.toggle('visible', count > ${TASK2_CHAR_LIMIT * 0.9});
-      });
-      
-      textarea.focus();
-    </script>
   `;
 }
 
@@ -1138,37 +1127,6 @@ function updatePrevButtonVisibility() {
       nextBtn?.classList.add('hidden');
       submitBtn?.classList.remove('hidden');
       if (skipBtn) skipBtn.classList.add('hidden');
-    } else if (isLast && !alreadyAnswered) {
-      prevBtn?.classList.remove('hidden');
-      checkBtn?.classList.remove('hidden');
-      nextBtn?.classList.add('hidden');
-      submitBtn?.classList.add('hidden');
-      skipBtn?.classList.remove('hidden');
-      skipBtn.textContent = 'Finalizar';
-      skipBtn.classList.remove('btn-secondary');
-      skipBtn.classList.add('btn-primary');
-    } else {
-      prevBtn?.classList.toggle('hidden', currentQuestionIndex === 0);
-      checkBtn?.classList.remove('hidden');
-      nextBtn?.classList.remove('hidden');
-      submitBtn?.classList.add('hidden');
-      if (skipBtn) {
-        skipBtn.classList.remove('hidden');
-        skipBtn.textContent = '⏭ Skip';
-        skipBtn.classList.remove('btn-primary');
-        skipBtn.classList.add('btn-secondary');
-      }
-    }
-  } else if (currentSection) {
-    const isLast = currentQuestionIndex >= shuffledQuestions.length - 1;
-    const alreadyAnswered = answeredQuestions.has(currentQuestionIndex);
-    
-    if (isLast && alreadyAnswered) {
-      prevBtn?.classList.remove('hidden');
-      checkBtn?.classList.add('hidden');
-      nextBtn?.classList.add('hidden');
-      submitBtn?.classList.remove('hidden');
-      skipBtn?.classList.add('hidden');
     } else if (isLast && !alreadyAnswered) {
       prevBtn?.classList.remove('hidden');
       checkBtn?.classList.remove('hidden');
@@ -1374,7 +1332,14 @@ function loadQuestion() {
         fullPath = `data/audios/listening-p${partNum}/${audioSrc}`;
       }
       
-      getElement('audio-container').innerHTML = `<audio id="main-audio" controls src="${fullPath}"></audio>`;
+      let audioHTML = `<audio id="main-audio" controls src="${fullPath}"></audio>`;
+      
+      if (question.extraAudio) {
+        const extraPath = `data/audios/listening-p${currentPartKey.replace('LISTENING_P', '')}/${question.extraAudio}`;
+        audioHTML += `<audio id="extra-audio" controls src="${extraPath}" class="extra-audio"></audio>`;
+      }
+      
+      getElement('audio-container').innerHTML = audioHTML;
       currentAudioElement = document.getElementById('main-audio');
     }
     getElement('audio-container').classList.remove('hidden');
@@ -1716,29 +1681,6 @@ function initEventListeners() {
   getElement('skip-btn')?.addEventListener('click', () => {
     pauseTimer();
     goToPreview();
-  });
-
-  getElement('preview-btn')?.addEventListener('click', () => {
-    if (currentPartKey && (currentPartKey === 'WRITING_TASK1' || currentPartKey === 'WRITING_TASK2')) {
-      currentWritingStep = WRITING_STEPS.TASK2;
-      renderWritingStep();
-      updateWritingHash('task2', 1);
-    } else {
-      const qNum = currentQuestionIndex;
-      if (qNum > 0) {
-        currentQuestionIndex = qNum - 1;
-        loadQuestion();
-      }
-      updateHash(currentPartKey, qNum);
-    }
-  });
-
-  getElement('submit-section-btn')?.addEventListener('click', () => {
-    if (currentSection === 'WRITING') {
-      submitWritingResponses();
-    } else {
-      showResults();
-    }
   });
 
   document.querySelectorAll('.user-link').forEach(el => {
