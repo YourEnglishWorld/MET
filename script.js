@@ -151,43 +151,20 @@ function loadFromHash() {
     return;
   }
   
-  const { section, taskPart, qNum } = parsed;
-  currentSection = section;
+  const { section, taskPart } = parsed;
   
-  getElement('category-select').classList.add('hidden');
-  getElement('quiz-view').classList.remove('hidden');
-  getElement('results-container').classList.add('hidden');
-  
-  if (taskPart === 'preview') {
-    if (section === 'WRITING') {
-      currentWritingStep = WRITING_STEPS.PREVIEW;
-      setupInstructionsPanel();
-      renderWritingStep();
-    } else {
-      showResults();
+  // Si hay un part key válido en SECTION_CONFIG, delegar a beginQuiz()
+  if (section && SECTION_CONFIG[section]) {
+    if (!currentUser) {
+      showRegistrationModal();
+      return;
     }
-    startTimer(section);
+    beginQuiz(section);
     return;
   }
   
-  getElement('category-badge').textContent = section.replace('_', ' ');
-  getElement('progress-text').textContent = `${qNum}/`;
-  
-  if (section === 'WRITING') {
-    if (taskPart === 'task1' && qNum >= 1 && qNum <= 3) {
-      currentWritingStep = qNum - 1;
-    } else if (taskPart === 'task2') {
-      currentWritingStep = 3;
-    }
-    setupInstructionsPanel();
-    renderWritingStep();
-  } else {
-    currentQuestionIndex = qNum - 1;
-    if (quizData[section] && quizData[section].length > 0) {
-      loadQuestion();
-      startTimer(section);
-    }
-  }
+  // Para backward compatibility con hashes antiguas
+  renderCategorySelect();
 }
 
 window.addEventListener('hashchange', loadFromHash);
