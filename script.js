@@ -1633,6 +1633,7 @@ function updatePrevButtonVisibility() {
   if (currentSection === 'WRITING') {
     const isPreview = currentWritingStep === WRITING_STEPS.PREVIEW;
     const isLastTask = currentWritingStep === WRITING_STEPS.TASK2;
+    const isLastQuestion = currentWritingStep === WRITING_STEPS.TASK1_Q3;
 
     if (isPreview) {
       prevBtn?.classList.add('hidden');
@@ -1640,7 +1641,7 @@ function updatePrevButtonVisibility() {
       nextBtn?.classList.add('hidden');
       submitBtn?.classList.remove('hidden');
       skipBtn?.classList.add('hidden');
-    } else if (isLastTask) {
+    } else if (isLastTask || isLastQuestion) {
       prevBtn?.classList.remove('hidden');
       checkBtn?.classList.add('hidden');
       nextBtn?.classList.add('hidden');
@@ -2946,7 +2947,12 @@ function initEventListeners() {
 
   getElement('skip-btn')?.addEventListener('click', () => {
     if (currentSection === 'WRITING') {
-      goToPreview();
+      const isLastTask = currentWritingStep === WRITING_STEPS.TASK2;
+      if (isLastTask) {
+        goToPreview();
+      } else {
+        nextSectionStep();
+      }
     } else if (currentSection === 'SPEAKING') {
       const isLastTask = speakingTaskIndex >= speakingPart.tasks.length - 1;
       if (isLastTask) {
