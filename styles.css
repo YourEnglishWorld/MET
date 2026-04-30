@@ -1709,4 +1709,154 @@ h1 {
   .magazine-body {
     font-size: 0.8rem;
   }
+
+  .speaking-task-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    padding: 20px;
+  }
+
+  .speaking-task-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    max-width: 600px;
+  }
+
+  .speaking-task-badge {
+    background: #6366f1;
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  .speaking-task-label {
+    font-size: 0.85rem;
+    color: #666;
+    font-weight: 500;
+  }
+
+  .speaking-prompt {
+    background: #f8f9fa;
+    border-left: 4px solid #6366f1;
+    padding: 16px 20px;
+    border-radius: 8px;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #222;
+    width: 100%;
+    max-width: 600px;
+    text-align: center;
+  }
+
+  .speaking-time-info {
+    font-size: 0.9rem;
+    color: #666;
+    font-style: italic;
+  }
+
+  .btn-begin-speaking {
+    background: linear-gradient(135deg, #6366f1, #818cf8);
+    color: #fff;
+    border: none;
+    padding: 14px 32px;
+    border-radius: 24px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  }
+
+  .btn-begin-speaking:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+  }
+
+  .btn-begin-speaking:active {
+    transform: translateY(0);
+  }
+
+  .speaking-timer {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #6366f1;
+    padding: 8px 16px;
+    background: #f0f0ff;
+    border-radius: 12px;
+  }
+
+  .speaking-timer.warning {
+    color: #dc2626;
+    background: #fef2f2;
+  }
+
+  .speaking-recorder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 24px;
+    background: #fff;
+    border: 2px solid #6366f1;
+    border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.15);
+  }
+
+  .recorder-icon {
+    font-size: 2rem;
+    animation: pulse 1.5s infinite;
+  }
+
+  .recorder-text {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #6366f1;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .audio-waveform {
+    width: 200px;
+    height: 40px;
+    border-radius: 8px;
+  }
+
+  .speaking-completed {
+    font-size: 0.95rem;
+    color: #16a34a;
+    font-weight: 600;
+    padding: 10px 20px;
+    background: #f0fdf4;
+    border-radius: 12px;
+    border: 1px solid #bbf7d0;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  @media (max-width: 768px) {
+    .speaking-prompt {
+      font-size: 0.9rem;
+      padding: 12px 16px;
+    }
+
+    .btn-begin-speaking {
+      padding: 12px 24px;
+      font-size: 0.9rem;
+    }
+
+    .audio-waveform {
+      width: 160px;
+      height: 32px;
+    }
+  }
 }

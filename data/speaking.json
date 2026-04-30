@@ -1,0 +1,42 @@
+{
+  "instructions": "This is the speaking section of the MET.\n\nThere are two parts in this section, with special directions for each part.\n\nYou will be asked to speak about different topics. You will have a limited amount of time to respond to each task.\n\nWhen you are ready, press the 'Begin speaking now' button to start recording. Your responses will be saved for review.",
+  "parts": [
+    {
+      "id": 1,
+      "instructions": "In this part, you will respond to three short prompts. You have 60 seconds for each response.",
+      "tasks": [
+        {
+          "number": 1,
+          "prompt": "Describe a typical morning in your home.",
+          "timeLimit": 60
+        },
+        {
+          "number": 2,
+          "prompt": "Tell me about a celebration or event that you enjoyed with your family or friends.",
+          "timeLimit": 60
+        },
+        {
+          "number": 3,
+          "prompt": "Some people prefer quiet places to relax, while others enjoy busy environments. What do you prefer? Explain your reasons.",
+          "timeLimit": 60
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "instructions": "In this part, you will complete two longer speaking tasks. You have 90 seconds for each response.",
+      "tasks": [
+        {
+          "number": 1,
+          "prompt": "You have been invited to join a community project that helps clean local parks. It will take place every weekend for two months. What are the advantages and disadvantages of participating?",
+          "timeLimit": 90
+        },
+        {
+          "number": 2,
+          "prompt": "A local company wants to reduce plastic use by encouraging customers to bring their own containers. I am the company manager. Tell me what you think about this idea and try to convince me to support it.",
+          "timeLimit": 90
+        }
+      ]
+    }
+  ]
+}

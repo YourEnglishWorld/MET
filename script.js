@@ -448,7 +448,9 @@ function saveProgress() {
     questionsOrder: shuffledQuestions.map(q => ({ exerciseIndex: q.exerciseIndex, questionIndex: q.questionIndex })),
     writingStep: currentWritingStep,
     writingResponses: sectionResponses,
-    writingGroupId: currentGroup?.id || null
+    writingGroupId: currentGroup?.id || null,
+    speakingTaskIndex: speakingTaskIndex,
+    speakingResponses: speakingResponses.map(r => r ? { duration: r.duration, timestamp: r.timestamp } : null)
   };
   localStorage.setItem('metQuizProgress', JSON.stringify(progress));
 }
@@ -771,6 +773,8 @@ function hasSectionContent(partKey) {
   const section = getSectionKey(partKey);
   if (section === 'WRITING') return quizData.WRITING && quizData.WRITING.groups && quizData.WRITING.groups.length > 0;
   if (section === 'LISTENING') return quizData.LISTENING && quizData.LISTENING.parts && quizData.LISTENING.parts.length > 0;
+  if (section === 'READING_AND_GRAMMAR') return quizData.READING_AND_GRAMMAR && quizData.READING_AND_GRAMMAR.parts && quizData.READING_AND_GRAMMAR.parts.length > 0;
+  if (section === 'SPEAKING') return quizData.SPEAKING && quizData.SPEAKING.parts && quizData.SPEAKING.parts.length > 0;
   return false;
 }
 
@@ -831,6 +835,16 @@ function beginQuiz(section) {
 
   if (section.startsWith('LISTENING_P')) {
     beginMcPart(section, saved);
+    return;
+  }
+
+  if (section.startsWith('READING_P')) {
+    beginMcPart(section, saved);
+    return;
+  }
+
+  if (section.startsWith('SPEAKING_P')) {
+    beginSpeaking(section, saved);
     return;
   }
 
@@ -1441,11 +1455,11 @@ function isLastPartOfSection() {
 }
 
 function updatePrevButtonVisibility() {
-  const prevBtn = getElement('prev-btn');
-  const submitBtn = getElement('submit-section-btn');
-  const checkBtn = getElement('check-btn');
-  const nextBtn = getElement('next-btn');
-  const skipBtn = getElement('skip-btn');
+  const prevBtn = document.getElementById('prev-btn');
+  const nextBtn = document.getElementById('next-btn');
+  const checkBtn = document.getElementById('check-btn');
+  const submitBtn = document.getElementById('submit-btn');
+  const skipBtn = document.getElementById('skip-btn');
 
   if (currentSection === 'WRITING') {
     const isPreview = currentWritingStep === WRITING_STEPS.PREVIEW;
@@ -1477,6 +1491,60 @@ function updatePrevButtonVisibility() {
         skipBtn.classList.remove('btn-primary');
         skipBtn.classList.add('btn-secondary');
       }
+    }
+  } else if (currentSection === 'SPEAKING') {
+    const isLastTask = speakingTaskIndex >= speakingPart.tasks.length - 1;
+    const hasNextPart = getNextPartKey();
+
+    prevBtn?.classList.toggle('hidden', speakingTaskIndex === 0);
+    checkBtn?.classList.add('hidden');
+    nextBtn?.classList.toggle('hidden', speakingTaskIndex >= speakingPart.tasks.length);
+    submitBtn?.classList.add('hidden');
+
+    if (speakingTaskIndex >= speakingPart.tasks.length) {
+      prevBtn?.classList.add('hidden');
+      checkBtn?.classList.add('hidden');
+      nextBtn?.classList.add('hidden');
+      submitBtn?.classList.remove('hidden');
+      skipBtn?.classList.add('hidden');
+    } else if (isLastTask) {
+      skipBtn?.classList.remove('hidden');
+      skipBtn.textContent = hasNextPart ? hasNextPart.name : 'Finalizar sección';
+      skipBtn.classList.remove('btn-secondary');
+      skipBtn.classList.add('btn-primary');
+    } else {
+      skipBtn?.classList.remove('hidden');
+      skipBtn.textContent = 'Siguiente';
+      skipBtn.classList.remove('btn-primary');
+      skipBtn.classList.add('btn-secondary');
+    }
+  } else if (currentSection && !sectionPreviewMode) {
+    const isLastGroup = currentGroupIndex >= questionGroups.length - 1;
+    const hasNextPart = getNextPartKey();
+
+    prevBtn?.classList.toggle('hidden', currentGroupIndex === 0);
+    checkBtn?.classList.add('hidden');
+    nextBtn?.classList.remove('hidden');
+    submitBtn?.classList.add('hidden');
+    if (isLastGroup) {
+      skipBtn?.classList.remove('hidden');
+      skipBtn.textContent = hasNextPart ? hasNextPart.name : 'Finalizar sección';
+      skipBtn.classList.remove('btn-secondary');
+      skipBtn.classList.add('btn-primary');
+    } else {
+      skipBtn?.classList.remove('hidden');
+      skipBtn.textContent = hasNextPart ? hasNextPart.name : 'Siguiente';
+      skipBtn.classList.remove('btn-primary');
+      skipBtn.classList.add('btn-secondary');
+    }
+  } else if (sectionPreviewMode) {
+    prevBtn?.classList.add('hidden');
+    checkBtn?.classList.add('hidden');
+    nextBtn?.classList.add('hidden');
+    submitBtn?.classList.remove('hidden');
+    skipBtn?.classList.add('hidden');
+  }
+}
     }
   } else if (currentSection && !sectionPreviewMode) {
     const isLastGroup = currentGroupIndex >= questionGroups.length - 1;
@@ -1568,6 +1636,248 @@ function saveCurrentWritingResponse() {
   }
 
   saveProgress();
+}
+
+let speakingPart = null;
+let speakingTaskIndex = 0;
+let speakingResponses = [];
+let speakingTimerRemaining = 0;
+let speakingTimerInterval = null;
+let speakingMediaRecorder = null;
+let speakingAudioChunks = [];
+let speakingStream = null;
+let speakingAudioContext = null;
+let speakingAnalyser = null;
+let speakingAnimationId = null;
+
+const SPEAKING_STEPS = {
+  TASK_1: 0,
+  TASK_2: 1,
+  TASK_3: 2,
+  TASK_4: 3,
+  TASK_5: 4,
+  PREVIEW: 5
+};
+
+function beginSpeaking(partKey, saved = null) {
+  const config = SECTION_CONFIG[partKey];
+  if (!config || !config.partId) return false;
+
+  const partData = quizData.SPEAKING?.parts?.find(p => p.id === config.partId);
+  if (!partData) return false;
+
+  speakingPart = partData;
+  const hasSavedProgress = saved && saved.currentPartKey === partKey;
+  speakingTaskIndex = hasSavedProgress ? (saved.speakingTaskIndex || 0) : 0;
+  speakingResponses = hasSavedProgress ? (saved.speakingResponses || []) : [];
+
+  currentPartKey = partKey;
+  currentSection = 'SPEAKING';
+
+  getElement('category-select').classList.add('hidden');
+  getElement('quiz-view').classList.remove('hidden');
+  getElement('results-container').classList.add('hidden');
+
+  setupInstructionsPanel();
+  logActivity('INICIO', `${currentSection} Part ${config.partId}`);
+  renderSpeakingTask();
+  updatePrevButtonVisibility();
+  startTimer('SPEAKING');
+  return true;
+}
+
+function renderSpeakingTask() {
+  const task = speakingPart.tasks[speakingTaskIndex];
+  if (!task) return;
+
+  const container = getElement('quiz-container');
+  container.classList.remove('fade-out');
+  void container.offsetWidth;
+  container.classList.add('fade-out');
+  setTimeout(() => {
+    container.classList.remove('fade-out');
+    container.style.animation = 'none';
+    void container.offsetWidth;
+    container.style.animation = 'fadeIn 0.5s ease';
+  }, 300);
+
+  updateSpeakingProgress();
+
+  getElement('audio-container').classList.add('hidden');
+  getElement('transcription-toggle').classList.add('hidden');
+  getElement('transcription-text').classList.add('hidden');
+  getElement('reading-text').classList.add('hidden');
+  getElement('feedback-container').classList.add('hidden');
+
+  const hasResponse = speakingResponses[speakingTaskIndex] !== null && speakingResponses[speakingTaskIndex] !== undefined;
+  const partLabel = getPartLabel(currentPartKey);
+
+  let html = '<div class="speaking-task-container">';
+  html += `<div class="speaking-task-header">`;
+  html += `<span class="speaking-task-badge">${partLabel}</span>`;
+  html += `<span class="speaking-task-label">Task ${task.number} of ${speakingPart.tasks.length}</span>`;
+  html += `</div>`;
+  html += `<div class="speaking-prompt">${task.prompt}</div>`;
+  html += `<div class="speaking-time-info">You have ${task.timeLimit} seconds to talk.</div>`;
+
+  if (!hasResponse) {
+    html += `<button id="begin-speaking-btn" class="btn-begin-speaking">Begin speaking now</button>`;
+    html += `<div id="speaking-timer" class="speaking-timer hidden">Time Remaining: <span id="speaking-time-display">${formatTime(task.timeLimit)}</span></div>`;
+    html += `<div id="speaking-recorder" class="speaking-recorder hidden">`;
+    html += `<div class="recorder-icon">🎙</div>`;
+    html += `<div class="recorder-text">Recording</div>`;
+    html += `<canvas id="audio-waveform" class="audio-waveform"></canvas>`;
+    html += `</div>`;
+  } else {
+    html += `<div class="speaking-completed">✓ Response recorded (${speakingResponses[speakingTaskIndex].duration}s)</div>`;
+    html += `<div id="speaking-timer" class="speaking-timer hidden">Time Remaining: <span id="speaking-time-display">${formatTime(task.timeLimit)}</span></div>`;
+    html += `<div id="speaking-recorder" class="speaking-recorder hidden">`;
+    html += `<div class="recorder-icon">🎙</div>`;
+    html += `<div class="recorder-text">Recording</div>`;
+    html += `<canvas id="audio-waveform" class="audio-waveform"></canvas>`;
+    html += `</div>`;
+  }
+
+  html += '</div>';
+
+  getElement('question-text').classList.add('hidden');
+  getElement('options-container').innerHTML = html;
+  getElement('controls').classList.remove('hidden');
+
+  const beginBtn = document.getElementById('begin-speaking-btn');
+  if (beginBtn) {
+    beginBtn.addEventListener('click', () => startSpeakingRecording(task));
+  }
+
+  updatePrevButtonVisibility();
+}
+
+function startSpeakingRecording(task) {
+  const beginBtn = document.getElementById('begin-speaking-btn');
+  const timerEl = document.getElementById('speaking-timer');
+  const recorderEl = document.getElementById('speaking-recorder');
+  const timeDisplay = document.getElementById('speaking-time-display');
+
+  if (beginBtn) beginBtn.classList.add('hidden');
+  if (timerEl) timerEl.classList.remove('hidden');
+  if (recorderEl) recorderEl.classList.remove('hidden');
+
+  speakingTimerRemaining = task.timeLimit;
+  speakingAudioChunks = [];
+
+  navigator.mediaDevices.getUserMedia({ audio: true })
+    .then(stream => {
+      speakingStream = stream;
+      speakingMediaRecorder = new MediaRecorder(stream);
+
+      speakingMediaRecorder.ondataavailable = event => {
+        if (event.data.size > 0) {
+          speakingAudioChunks.push(event.data);
+        }
+      };
+
+      speakingMediaRecorder.onstop = () => {
+        const blob = new Blob(speakingAudioChunks, { type: 'audio/webm' });
+        const duration = task.timeLimit - speakingTimerRemaining;
+        speakingResponses[speakingTaskIndex] = { blob, duration, timestamp: Date.now() };
+        saveProgress();
+        stopAudioVisualization();
+        renderSpeakingTask();
+      };
+
+      speakingMediaRecorder.start();
+      setupAudioVisualization(stream);
+
+      speakingTimerInterval = setInterval(() => {
+        speakingTimerRemaining--;
+        if (timeDisplay) timeDisplay.textContent = formatTime(speakingTimerRemaining);
+
+        if (speakingTimerRemaining <= 0) {
+          clearInterval(speakingTimerInterval);
+          if (speakingMediaRecorder && speakingMediaRecorder.state !== 'inactive') {
+            speakingMediaRecorder.stop();
+          }
+          if (speakingStream) {
+            speakingStream.getTracks().forEach(track => track.stop());
+          }
+        }
+      }, 1000);
+    })
+    .catch(err => {
+      console.error('Microphone access denied:', err);
+      alert('Microphone access is required for the speaking section.');
+      renderSpeakingTask();
+    });
+}
+
+function setupAudioVisualization(stream) {
+  const canvas = document.getElementById('audio-waveform');
+  if (!canvas) return;
+
+  speakingAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+  const source = speakingAudioContext.createMediaStreamSource(stream);
+  speakingAnalyser = speakingAudioContext.createAnalyser();
+  speakingAnalyser.fftSize = 256;
+  source.connect(speakingAnalyser);
+
+  const bufferLength = speakingAnalyser.frequencyBinCount;
+  const dataArray = new Uint8Array(bufferLength);
+  const ctx = canvas.getContext('2d');
+
+  function draw() {
+    speakingAnimationId = requestAnimationFrame(draw);
+
+    speakingAnalyser.getByteFrequencyData(dataArray);
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const barWidth = (canvas.width / bufferLength) * 2.5;
+    let x = 0;
+
+    for (let i = 0; i < bufferLength; i++) {
+      const barHeight = (dataArray[i] / 255) * canvas.height * 0.8;
+
+      const gradient = ctx.createLinearGradient(0, canvas.height, 0, canvas.height - barHeight);
+      gradient.addColorStop(0, '#6366f1');
+      gradient.addColorStop(1, '#818cf8');
+
+      ctx.fillStyle = gradient;
+      ctx.fillRect(x, canvas.height - barHeight, barWidth - 1, barHeight);
+
+      x += barWidth;
+    }
+  }
+
+  draw();
+}
+
+function stopAudioVisualization() {
+  if (speakingAnimationId) {
+    cancelAnimationFrame(speakingAnimationId);
+    speakingAnimationId = null;
+  }
+  if (speakingAudioContext) {
+    speakingAudioContext.close();
+    speakingAudioContext = null;
+  }
+}
+
+function updateSpeakingProgress() {
+  const badge = getElement('category-badge');
+  const progressText = getElement('progress-text');
+  const progressBar = getElement('progress-bar');
+
+  if (badge) badge.textContent = getSectionBadge(currentPartKey);
+  if (progressText) {
+    const partLabel = getPartLabel(currentPartKey);
+    progressText.textContent = partLabel || 'Speaking';
+  }
+  if (progressBar) {
+    const totalTasks = speakingPart.tasks.length;
+    const completed = speakingResponses.filter(r => r !== null && r !== undefined).length;
+    const percent = totalTasks > 0 ? Math.round((completed / totalTasks) * 100) : 0;
+    progressBar.style.width = `${percent}%`;
+  }
 }
 
 function nextSectionStep() {
@@ -1688,12 +1998,22 @@ function previousQuestion() {
     return;
   }
 
+  if (currentSection === 'SPEAKING') {
+    previousSpeakingTask();
+    return;
+  }
+
   navigateToPrevGroup();
 }
 
 function nextQuestion() {
   if (currentSection === 'WRITING') {
     nextSectionStep();
+    return;
+  }
+
+  if (currentSection === 'SPEAKING') {
+    nextSpeakingTask();
     return;
   }
 
@@ -1714,6 +2034,28 @@ function goToPreview() {
   hashNavigationLocked = false;
 
   renderSectionPreview();
+}
+
+function nextSpeakingTask() {
+  if (currentSection !== 'SPEAKING') return;
+
+  saveProgress();
+
+  if (speakingTaskIndex < speakingPart.tasks.length - 1) {
+    speakingTaskIndex++;
+    renderSpeakingTask();
+  } else {
+    goToPreview();
+  }
+}
+
+function previousSpeakingTask() {
+  if (currentSection !== 'SPEAKING') return;
+
+  if (speakingTaskIndex > 0) {
+    speakingTaskIndex--;
+    renderSpeakingTask();
+  }
 }
 
 function buildAllSectionGroups(section) {
@@ -1973,11 +2315,11 @@ function showResults() {
       totalScore += score[cat] || 0;
       displayScore = count > 0 ? `${score[cat] || 0}/${count}` : '0/0';
     } else if (cat === 'SPEAKING') {
-      const partCount = 2;
-      totalParts += partCount;
-      const answered = sectionResponses.filter(r => r && r.length > 0).length;
+      const totalTasks = catData?.parts?.reduce((sum, p) => sum + (p.tasks?.length || 0), 0) || 0;
+      totalParts += totalTasks;
+      const answered = speakingResponses.filter(r => r).length;
       totalScore += answered;
-      displayScore = `${answered}/${partCount}`;
+      displayScore = `${answered}/${totalTasks}`;
     }
 
     const div = document.createElement('div');
@@ -2017,13 +2359,13 @@ function sendEmail() {
 
   const writingPart1 = currentGroup?.task1?.length || 0;
   const writingPart2 = currentGroup?.task2 ? 1 : 0;
-  const speakingPartCount = 2;
-
   const part1Answered = sectionResponses.filter((r, i) => r && r.length > 0 && i < writingPart1).length;
   const part2Answered = sectionResponses[writingPart1] && sectionResponses[writingPart1].length > 0 ? 1 : 0;
+  const speakingTaskCount = quizData.SPEAKING?.parts?.reduce((sum, p) => sum + (p.tasks?.length || 0), 0) || 0;
+  const speakingAnswered = speakingResponses.filter(r => r).length;
 
-  const totalScore = score.WRITING + score.LISTENING + score.READING_AND_GRAMMAR + score.SPEAKING;
-  const totalParts = writingPart1 + writingPart2 + listeningCount + readingCount + speakingPartCount;
+  const totalScore = score.WRITING + score.LISTENING + score.READING_AND_GRAMMAR + speakingAnswered;
+  const totalParts = writingPart1 + writingPart2 + listeningCount + readingCount + speakingTaskCount;
   const percentage = totalParts > 0 ? Math.round((totalScore / totalParts) * 100) : 0;
 
   const subject = 'Resultados MET Quiz - Your English World';
@@ -2035,7 +2377,7 @@ Desglose por sección:
 - WRITING: ${part1Answered}/${writingPart1} • ${part2Answered}/${writingPart2}
 - LISTENING: ${score.LISTENING || 0}/${listeningCount}
 - READING & GRAMMAR: ${score.READING_AND_GRAMMAR || 0}/${readingCount}
-- SPEAKING: ${score.SPEAKING || 0}/${speakingPartCount}
+- SPEAKING: ${speakingAnswered}/${speakingTaskCount}
 
 ---
 Enviado desde Your English World Quiz`;
