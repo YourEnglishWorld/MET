@@ -1896,6 +1896,29 @@ h1 {
     border: 1px solid #bbf7d0;
   }
 
+  .btn-playback-speaking {
+    margin-top: 12px;
+    padding: 10px 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #6366f1;
+    background: white;
+    border: 2px solid #6366f1;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .btn-playback-speaking:hover:not(:disabled) {
+    background: #6366f1;
+    color: white;
+  }
+
+  .btn-playback-speaking:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
   @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.5; }

@@ -499,9 +499,11 @@ function resetAllProgress() {
   const handleOk = () => {
     modal.classList.add('hidden');
     clearProgress();
+    clearSpeakingDB().catch(console.error);
     score = { WRITING: 0, LISTENING: 0, READING_AND_GRAMMAR: 0, SPEAKING: 0 };
     answeredQuestions = new Set();
     sectionResponses = [];
+    speakingResponses = [];
     currentWritingStep = 0;
     currentQuestionIndex = 0;
     renderCategorySelect();
@@ -1660,7 +1662,7 @@ function updatePrevButtonVisibility() {
 
     prevBtn?.classList.toggle('hidden', speakingTaskIndex === 0);
     checkBtn?.classList.add('hidden');
-    nextBtn?.classList.toggle('hidden', speakingTaskIndex >= speakingPart.tasks.length);
+    nextBtn?.classList.add('hidden');
     submitBtn?.classList.add('hidden');
 
     if (speakingTaskIndex >= speakingPart.tasks.length) {
@@ -1671,7 +1673,7 @@ function updatePrevButtonVisibility() {
       skipBtn?.classList.add('hidden');
     } else if (isLastTask) {
       skipBtn?.classList.remove('hidden');
-      skipBtn.textContent = hasNextPart ? hasNextPart.name : 'Finalizar sección';
+      skipBtn.textContent = 'Preview';
       skipBtn.classList.remove('btn-secondary');
       skipBtn.classList.add('btn-primary');
     } else {
@@ -1697,7 +1699,11 @@ function updatePrevButtonVisibility() {
     submitBtn?.classList.add('hidden');
 
     if (allChecked) {
-      nextBtn?.classList.remove('hidden');
+      if (isLastGroup) {
+        nextBtn?.classList.add('hidden');
+      } else {
+        nextBtn?.classList.remove('hidden');
+      }
     } else {
       nextBtn?.classList.add('hidden');
     }
@@ -1798,6 +1804,88 @@ let speakingAudioContext = null;
 let speakingAnalyser = null;
 let speakingAnimationId = null;
 
+const SPEAKING_DB_NAME = 'SpeakingAudioDB';
+const SPEAKING_DB_VERSION = 1;
+const SPEAKING_STORE_NAME = 'audioResponses';
+
+let speakingDB = null;
+
+function openSpeakingDB() {
+  return new Promise((resolve, reject) => {
+    if (speakingDB) {
+      resolve(speakingDB);
+      return;
+    }
+    const request = indexedDB.open(SPEAKING_DB_NAME, SPEAKING_DB_VERSION);
+    request.onupgradeneeded = event => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains(SPEAKING_STORE_NAME)) {
+        db.createObjectStore(SPEAKING_STORE_NAME, { keyPath: 'id' });
+      }
+    };
+    request.onsuccess = event => {
+      speakingDB = event.target.result;
+      resolve(speakingDB);
+    };
+    request.onerror = event => reject(event.target.error);
+  });
+}
+
+function saveSpeakingAudio(taskIndex, blob, duration) {
+  return openSpeakingDB().then(db => {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(SPEAKING_STORE_NAME, 'readwrite');
+      const store = tx.objectStore(SPEAKING_STORE_NAME);
+      const record = {
+        id: `speaking_task_${taskIndex}`,
+        taskIndex,
+        blob,
+        duration,
+        timestamp: Date.now()
+      };
+      store.put(record);
+      tx.oncomplete = () => resolve();
+      tx.onerror = event => reject(event.target.error);
+    });
+  });
+}
+
+function getSpeakingAudio(taskIndex) {
+  return openSpeakingDB().then(db => {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(SPEAKING_STORE_NAME, 'readonly');
+      const store = tx.objectStore(SPEAKING_STORE_NAME);
+      const request = store.get(`speaking_task_${taskIndex}`);
+      request.onsuccess = () => resolve(request.result || null);
+      request.onerror = event => reject(event.target.error);
+    });
+  });
+}
+
+function getAllSpeakingAudio() {
+  return openSpeakingDB().then(db => {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(SPEAKING_STORE_NAME, 'readonly');
+      const store = tx.objectStore(SPEAKING_STORE_NAME);
+      const request = store.getAll();
+      request.onsuccess = () => resolve(request.result || []);
+      request.onerror = event => reject(event.target.error);
+    });
+  });
+}
+
+function clearSpeakingDB() {
+  return openSpeakingDB().then(db => {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(SPEAKING_STORE_NAME, 'readwrite');
+      const store = tx.objectStore(SPEAKING_STORE_NAME);
+      store.clear();
+      tx.oncomplete = () => resolve();
+      tx.onerror = event => reject(event.target.error);
+    });
+  });
+}
+
 const SPEAKING_STEPS = {
   TASK_1: 0,
   TASK_2: 1,
@@ -1828,7 +1916,22 @@ function beginSpeaking(partKey, saved = null) {
 
   setupInstructionsPanel();
   logActivity('INICIO', `${currentSection} Part ${config.partId}`);
-  renderSpeakingTask();
+
+  getAllSpeakingAudio().then(records => {
+    records.forEach(record => {
+      if (record.taskIndex >= 0 && record.taskIndex < speakingPart.tasks.length) {
+        speakingResponses[record.taskIndex] = {
+          blob: record.blob,
+          duration: record.duration,
+          timestamp: record.timestamp
+        };
+      }
+    });
+    renderSpeakingTask();
+  }).catch(() => {
+    renderSpeakingTask();
+  });
+
   updatePrevButtonVisibility();
   startTimer('SPEAKING');
   return true;
@@ -1877,7 +1980,10 @@ function renderSpeakingTask() {
     html += `<canvas id="audio-waveform" class="audio-waveform"></canvas>`;
     html += `</div>`;
   } else {
-    html += `<div class="speaking-completed">✓ Response recorded (${speakingResponses[speakingTaskIndex].duration}s)</div>`;
+    const duration = speakingResponses[speakingTaskIndex].duration;
+    html += `<div class="speaking-completed">✓ Response recorded (${duration}s)</div>`;
+    html += `<button id="playback-speaking-btn" class="btn-playback-speaking">▶ Play your recording</button>`;
+    html += `<audio id="speaking-audio-playback" class="hidden"></audio>`;
     html += `<div id="speaking-timer" class="speaking-timer hidden">Time Remaining: <span id="speaking-time-display">${formatTime(task.timeLimit)}</span></div>`;
     html += `<div id="speaking-recorder" class="speaking-recorder hidden">`;
     html += `<div class="recorder-icon">🎙</div>`;
@@ -1895,6 +2001,11 @@ function renderSpeakingTask() {
   const beginBtn = document.getElementById('begin-speaking-btn');
   if (beginBtn) {
     beginBtn.addEventListener('click', () => startSpeakingRecording(task));
+  }
+
+  const playbackBtn = document.getElementById('playback-speaking-btn');
+  if (playbackBtn) {
+    playbackBtn.addEventListener('click', () => playSpeakingRecording(speakingTaskIndex));
   }
 
   updatePrevButtonVisibility();
@@ -1928,6 +2039,7 @@ function startSpeakingRecording(task) {
         const blob = new Blob(speakingAudioChunks, { type: 'audio/webm' });
         const duration = task.timeLimit - speakingTimerRemaining;
         speakingResponses[speakingTaskIndex] = { blob, duration, timestamp: Date.now() };
+        saveSpeakingAudio(speakingTaskIndex, blob, duration).catch(console.error);
         saveProgress();
         stopAudioVisualization();
         renderSpeakingTask();
@@ -2008,6 +2120,37 @@ function stopAudioVisualization() {
     speakingAudioContext.close();
     speakingAudioContext = null;
   }
+}
+
+function playSpeakingRecording(taskIndex) {
+  const response = speakingResponses[taskIndex];
+  if (!response || !response.blob) return;
+
+  const audioEl = document.getElementById('speaking-audio-playback');
+  const playbackBtn = document.getElementById('playback-speaking-btn');
+  if (!audioEl || !playbackBtn) return;
+
+  const url = URL.createObjectURL(response.blob);
+  audioEl.src = url;
+  audioEl.classList.remove('hidden');
+  audioEl.play();
+
+  playbackBtn.textContent = '⏸ Playing...';
+  playbackBtn.disabled = true;
+
+  audioEl.onended = () => {
+    URL.revokeObjectURL(url);
+    playbackBtn.textContent = '▶ Play your recording';
+    playbackBtn.disabled = false;
+    audioEl.classList.add('hidden');
+  };
+
+  audioEl.onerror = () => {
+    URL.revokeObjectURL(url);
+    playbackBtn.textContent = '▶ Play your recording';
+    playbackBtn.disabled = false;
+    audioEl.classList.add('hidden');
+  };
 }
 
 function updateSpeakingProgress() {
@@ -2117,8 +2260,14 @@ function navigateToNextPart() {
   }
 
   saveProgress();
-  beginMcPart(nextPart.key);
-  startTimer(currentSection);
+
+  if (currentSection === 'SPEAKING') {
+    beginSpeaking(nextPart.key);
+    startTimer(currentSection);
+  } else {
+    beginMcPart(nextPart.key);
+    startTimer(currentSection);
+  }
 }
 
 function navigateToPart(partKey) {
@@ -2532,6 +2681,10 @@ function sendEmail() {
   const percentage = totalParts > 0 ? Math.round((totalScore / totalParts) * 100) : 0;
 
   const subject = 'Resultados MET Quiz - Your English World';
+  const speakingDetails = speakingResponses
+    .map((r, i) => r ? `  Task ${i + 1}: ${r.duration}s recorded` : `  Task ${i + 1}: No response`)
+    .join('\n');
+
   const body = `Resultados del Test MET
 =======================
 Puntuación Total: ${percentage}% (${totalScore}/${totalParts})
@@ -2541,6 +2694,7 @@ Desglose por sección:
 - LISTENING: ${score.LISTENING || 0}/${listeningCount}
 - READING & GRAMMAR: ${score.READING_AND_GRAMMAR || 0}/${readingCount}
 - SPEAKING: ${speakingAnswered}/${speakingTaskCount}
+${speakingDetails}
 
 ---
 Enviado desde Your English World Quiz`;
@@ -2631,6 +2785,13 @@ function initEventListeners() {
   getElement('skip-btn')?.addEventListener('click', () => {
     if (currentSection === 'WRITING') {
       goToPreview();
+    } else if (currentSection === 'SPEAKING') {
+      const isLastTask = speakingTaskIndex >= speakingPart.tasks.length - 1;
+      if (isLastTask) {
+        goToPreview();
+      } else {
+        nextSpeakingTask();
+      }
     } else {
       navigateToNextPart();
     }
