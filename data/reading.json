@@ -192,6 +192,270 @@
           "correct": 1
         }
       ]
+    },
+    {
+      "id": 3,
+      "instructions": "In this part of the test, you will read three shorter texts (journalist style) about a similar topic and answer some questions about them. Choose the answer to each question from the choices given.",
+      "readingGroups": [
+        {
+          "number": 1,
+          "groupLabel": "Group 1",
+          "article": {
+            "letter": "A",
+            "title": "The Rise of Electric Vehicles",
+            "date": "April 12, 2026",
+            "content": "Cleaner streets, quieter engines, and a vision of sustainable mobility are driving the rapid growth of electric vehicles (EVs) across the globe. Once considered experimental, EVs are now entering the mainstream, reshaping the way societies think about transportation.\n\n• More than 10 million EVs are already on the road worldwide, with sales increasing each year.\n• Advances in battery technology allow longer trips and faster charging times.\n• Governments encourage adoption through tax incentives and the expansion of charging networks.\n• Automakers invest heavily in research, producing models that combine efficiency, safety, and style.\n• Environmental benefits include reduced air pollution and lower greenhouse gas emissions.\n\nChallenges remain. Charging infrastructure is uneven, and battery production depends on rare minerals that raise sustainability concerns. Yet experts agree that the momentum is unstoppable.\n\nFor many citizens, the electric car is more than a vehicle—it is a symbol of progress. As cities adapt and industries innovate, EVs stand as a promise of cleaner air, smarter mobility, and a future where technology and responsibility travel side by side."
+          },
+          "questions": [
+            {
+              "number": 1,
+              "question": "What is one environmental benefit of electric vehicles mentioned in the article?",
+              "options": ["They reduce air pollution", "They increase fuel prices", "They eliminate traffic congestion", "They require no batteries"],
+              "correct": 0
+            },
+            {
+              "number": 2,
+              "question": "What challenge related to electric vehicles is highlighted in the article?",
+              "options": ["Lack of stylish designs", "Limited charging infrastructure", "Excessive noise in cities", "High gasoline consumption"],
+              "correct": 1
+            },
+            {
+              "number": 3,
+              "question": "According to the article, what concern is linked to battery production?",
+              "options": ["Excessive noise", "Use of rare minerals", "Lack of stylish models", "High gasoline prices"],
+              "correct": 1
+            }
+          ]
+        },
+        {
+          "number": 2,
+          "groupLabel": "Group 1",
+          "article": {
+            "letter": "B",
+            "title": "Interview with Daniel Brooks on Nikola Tesla",
+            "subheading": "Midvillage Daily News staff reporter Helen Carter interviews automotive historian Daniel Brooks.",
+            "isInterview": true,
+            "content": "Q: In your view, who has been the most influential figure in the history of electric vehicles?\n\nA: Without hesitation, I would say Nikola Tesla. His vision of harnessing electricity for practical use laid the foundation for technologies that inspire today's engineers. Though he lived in the late 19th and early 20th centuries, his ideas remain alive in every modern battery and motor.\n\nQ: Could you tell us about his early life?\n\nA: Tesla was born in 1856 in what is now Croatia. From a young age, he showed remarkable talent for mathematics and imagination. He often spoke of vivid dreams and inventions that came to him like flashes of light. That creative energy never left him.\n\nQ: How did he begin his career in the field of electricity?\n\nA: He moved to the United States in 1884 and quickly found work with Thomas Edison. Their collaboration was short-lived, but it gave Tesla the chance to demonstrate his brilliance. Soon after, he developed the alternating current system, which became the backbone of modern power distribution.\n\nQ: What would you say was his greatest contribution to the world of technology?\n\nA: Tesla's gift was his ability to see beyond the present. His alternating current system changed the way electricity was delivered, making it possible to power homes and industries across vast distances. More than that, his passion for innovation continues to inspire the engineers who design the electric vehicles of today."
+          },
+          "questions": [
+            {
+              "number": 1,
+              "question": "According to the interview, what was Tesla's greatest contribution?",
+              "options": ["Inventing the gasoline engine", "Developing alternating current", "Creating solar panels", "Building hydroelectric dams"],
+              "correct": 1
+            },
+            {
+              "number": 2,
+              "question": "Where did Tesla begin his career in the United States?",
+              "options": ["At General Motors", "With Thomas Edison", "At Midvillage College", "In Croatia"],
+              "correct": 1
+            },
+            {
+              "number": 3,
+              "question": "What inspired Tesla's lifelong passion for invention?",
+              "options": ["His work with Edison", "His vivid dreams and imagination", "His move to Africa", "His studies at Midvillage College"],
+              "correct": 1
+            },
+            {
+              "number": 4,
+              "question": "In which year did Tesla move to the United States?",
+              "options": ["1856", "1884", "1920", "1939"],
+              "correct": 1
+            }
+          ]
+        },
+        {
+          "number": 3,
+          "groupLabel": "Group 1",
+          "article": {
+            "letter": "C",
+            "title": "The Value of Using Technology in Education",
+            "author": "Dr. Laura Mitchell",
+            "date": "April 15, 2026",
+            "bio": "Dr. Laura Mitchell is a professor of educational technology and consultant for innovative schools.",
+            "content": "In classrooms across the world, technology has become more than a tool—it is a bridge between students and knowledge. From interactive whiteboards to online platforms, digital resources are transforming the way young learners and adolescents engage with lessons. Properly used, technology does not distract; it empowers.\n\nDigital media captures attention and sparks imagination. A video clip can illustrate a scientific concept more vividly than a textbook, while interactive apps encourage students to practice skills with enthusiasm. Technology also promotes values and life skills: collaboration in group projects, responsibility in managing online tasks, and awareness of global issues through instant access to information.\n\nOlder students, already immersed in digital culture, find comfort in learning through familiar platforms. Lessons delivered with multimedia are often more relevant, current, and engaging. Teachers who embrace technology are perceived as approachable and modern, strengthening the relationship between instructor and student. This bond, in turn, enhances retention and deepens understanding.\n\nTechnology in education is not a passing trend. It is a powerful ally that enriches learning, encourages critical thinking, and prepares students for a world where digital literacy is as essential as reading and writing."
+          },
+          "questions": [
+            {
+              "number": 1,
+              "question": "What is one advantage of using technology in classrooms mentioned in the article?",
+              "options": ["It distracts students", "It makes teachers less approachable", "It strengthens teacher-student relationships", "It eliminates the need for textbooks"],
+              "correct": 2
+            },
+            {
+              "number": 2,
+              "question": "What is one way technology helps older students, according to the article?",
+              "options": ["It reduces their interest in lessons", "It connects them through familiar platforms", "It eliminates the need for teachers", "It limits their access to information"],
+              "correct": 1
+            }
+          ]
+        },
+        {
+          "number": 4,
+          "groupLabel": "Group 1",
+          "isConnector": true,
+          "connectorArticles": [
+            {
+              "letter": "A",
+              "title": "The Rise of Electric Vehicles",
+              "content": "Cleaner streets, quieter engines, and a vision of sustainable mobility are driving the rapid growth of electric vehicles (EVs) across the globe. Once considered experimental, EVs are now entering the mainstream, reshaping the way societies think about transportation.\n\n• More than 10 million EVs are already on the road worldwide, with sales increasing each year.\n• Advances in battery technology allow longer trips and faster charging times.\n• Governments encourage adoption through tax incentives and the expansion of charging networks.\n• Automakers invest heavily in research, producing models that combine efficiency, safety, and style.\n• Environmental benefits include reduced air pollution and lower greenhouse gas emissions.\n\nChallenges remain. Charging infrastructure is uneven, and battery production depends on rare minerals that raise sustainability concerns. Yet experts agree that the momentum is unstoppable.\n\nFor many citizens, the electric car is more than a vehicle—it is a symbol of progress. As cities adapt and industries innovate, EVs stand as a promise of cleaner air, smarter mobility, and a future where technology and responsibility travel side by side."
+            },
+            {
+              "letter": "B",
+              "title": "Interview with Daniel Brooks on Nikola Tesla",
+              "subheading": "Midvillage Daily News staff reporter Helen Carter interviews automotive historian Daniel Brooks.",
+              "isInterview": true,
+              "content": "Q: In your view, who has been the most influential figure in the history of electric vehicles?\n\nA: Without hesitation, I would say Nikola Tesla. His vision of harnessing electricity for practical use laid the foundation for technologies that inspire today's engineers. Though he lived in the late 19th and early 20th centuries, his ideas remain alive in every modern battery and motor.\n\nQ: Could you tell us about his early life?\n\nA: Tesla was born in 1856 in what is now Croatia. From a young age, he showed remarkable talent for mathematics and imagination. He often spoke of vivid dreams and inventions that came to him like flashes of light. That creative energy never left him.\n\nQ: How did he begin his career in the field of electricity?\n\nA: He moved to the United States in 1884 and quickly found work with Thomas Edison. Their collaboration was short-lived, but it gave Tesla the chance to demonstrate his brilliance. Soon after, he developed the alternating current system, which became the backbone of modern power distribution.\n\nQ: What would you say was his greatest contribution to the world of technology?\n\nA: Tesla's gift was his ability to see beyond the present. His alternating current system changed the way electricity was delivered, making it possible to power homes and industries across vast distances. More than that, his passion for innovation continues to inspire the engineers who design the electric vehicles of today."
+            },
+            {
+              "letter": "C",
+              "title": "The Value of Using Technology in Education",
+              "author": "Dr. Laura Mitchell",
+              "date": "April 15, 2026",
+              "bio": "Dr. Laura Mitchell is a professor of educational technology and consultant for innovative schools.",
+              "content": "In classrooms across the world, technology has become more than a tool—it is a bridge between students and knowledge. From interactive whiteboards to online platforms, digital resources are transforming the way young learners and adolescents engage with lessons. Properly used, technology does not distract; it empowers.\n\nDigital media captures attention and sparks imagination. A video clip can illustrate a scientific concept more vividly than a textbook, while interactive apps encourage students to practice skills with enthusiasm. Technology also promotes values and life skills: collaboration in group projects, responsibility in managing online tasks, and awareness of global issues through instant access to information.\n\nOlder students, already immersed in digital culture, find comfort in learning through familiar platforms. Lessons delivered with multimedia are often more relevant, current, and engaging. Teachers who embrace technology are perceived as approachable and modern, strengthening the relationship between instructor and student. This bond, in turn, enhances retention and deepens understanding.\n\nTechnology in education is not a passing trend. It is a powerful ally that enriches learning, encourages critical thinking, and prepares students for a world where digital literacy is as essential as reading and writing."
+            }
+          ],
+          "questions": [
+            {
+              "number": 1,
+              "question": "What common theme unites the three readings?",
+              "options": ["The importance of entertainment", "The role of innovation in shaping society", "The decline of traditional education", "The dangers of urbanization"],
+              "correct": 1
+            }
+          ]
+        },
+        {
+          "number": 5,
+          "groupLabel": "Group 2",
+          "article": {
+            "letter": "A",
+            "title": "The Spirit of Local Markets",
+            "date": "April 25, 2026",
+            "content": "Colorful stalls, lively voices, and the aroma of fresh food fill the air in local markets across the world. Once seen only as places to buy daily necessities, these markets are now celebrated as cultural landmarks, attracting visitors eager to experience authentic traditions.\n\n• Local markets showcase regional foods, crafts, and handmade goods.\n• They provide economic opportunities for small producers and artisans.\n• Tourists discover cultural heritage through flavors, colors, and conversations.\n• Markets strengthen community ties by bringing people together in shared spaces.\n• Sustainability is promoted through local sourcing and reduced transport.\n\nChallenges exist, of course. Modern supermarkets and online shopping compete with traditional markets, and maintaining hygiene and infrastructure requires effort. Yet the resilience of these spaces is undeniable.\n\nFor many communities, the market is more than commerce—it is a living stage where culture, identity, and human connection thrive. As cities grow and societies change, local markets remain a timeless reminder that tradition and community are treasures worth preserving."
+          },
+          "questions": [
+            {
+              "number": 1,
+              "question": "What is one cultural benefit of local markets mentioned in the article?",
+              "options": ["They reduce online shopping", "They strengthen community ties", "They eliminate supermarkets", "They increase fuel prices"],
+              "correct": 1
+            },
+            {
+              "number": 2,
+              "question": "What challenge do local markets face according to the article?",
+              "options": ["Lack of colorful stalls", "Competition from supermarkets and online shopping", "Too many tourists", "Shortage of artisans"],
+              "correct": 1
+            },
+            {
+              "number": 3,
+              "question": "What sustainability benefit is associated with local markets?",
+              "options": ["Reduced transport through local sourcing", "Increased online shopping", "Elimination of cultural festivals", "Higher fuel consumption"],
+              "correct": 0
+            }
+          ]
+        },
+        {
+          "number": 6,
+          "groupLabel": "Group 2",
+          "article": {
+            "letter": "B",
+            "title": "The Evolution of Public Libraries",
+            "author": "Prof. Eleanor Grant",
+            "date": "April 27, 2026",
+            "bio": "",
+            "content": "Early Period (1830–1850) — Public libraries began as small collections funded by local communities and philanthropists. Their purpose was simple: to provide access to books for those who could not afford them. In these early years, libraries were modest, often housed in single rooms, but they represented a revolutionary idea—knowledge for all.\n\nMiddle Period (1850–1900) — With industrial growth and rising literacy rates, libraries expanded rapidly. Many cities built grand library buildings, often in neoclassical or Victorian styles. Collections grew to include newspapers, journals, and reference works. The library became not only a place to read but also a civic symbol of progress and education.\n\nLate Period (1900–1950) — Libraries embraced new technologies, such as card catalogs and lending systems, making access easier. They also began offering lectures, exhibitions, and children's programs. By mid-century, the public library had become a cornerstone of community life, adapting to social changes while preserving its mission of free access to knowledge.\n\nToday, libraries continue to evolve with digital resources, online catalogs, and multimedia collections. Yet their essence remains unchanged: they are spaces where learning, culture, and community converge."
+          },
+          "questions": [
+            {
+              "number": 1,
+              "question": "In the early period (1830–1850), what was the main purpose of public libraries?",
+              "options": ["To host lectures", "To provide access to books for those who could not afford them", "To store government records", "To promote Victorian architecture"],
+              "correct": 1
+            },
+            {
+              "number": 2,
+              "question": "During the middle period (1850–1900), what symbol did libraries represent?",
+              "options": ["A place for entertainment", "A civic symbol of progress and education", "A marketplace for artisans", "A center for political debate"],
+              "correct": 1
+            },
+            {
+              "number": 3,
+              "question": "What innovation did libraries adopt in the early 20th century?",
+              "options": ["Digital catalogs", "Card catalogs and lending systems", "Online platforms", "Victorian architecture"],
+              "correct": 1
+            },
+            {
+              "number": 4,
+              "question": "By mid-century, what role had libraries assumed in community life?",
+              "options": ["They became centers of political debate", "They were cornerstones of community life", "They replaced schools", "They focused only on children's programs"],
+              "correct": 1
+            }
+          ]
+        },
+        {
+          "number": 7,
+          "groupLabel": "Group 2",
+          "article": {
+            "letter": "C",
+            "title": "Voices of Tradition: The Story of Local Artisans",
+            "author": "Dr. Samuel Hayes",
+            "date": "April 28, 2026",
+            "bio": "Dr. Samuel Hayes is a cultural historian and lecturer specializing in traditional crafts and community heritage.",
+            "content": "In every bustling market, behind the colorful stalls and handcrafted goods, there are artisans whose stories embody resilience and creativity. These men and women carry forward traditions that have been passed down through generations, shaping not only objects but also cultural identity.\n\nBorn into families of weavers, potters, and woodcarvers, many artisans begin their craft in childhood. Their skills are honed through practice, patience, and a deep respect for materials. Each piece they create—whether a woven basket, a ceramic vase, or a carved figure—tells a story of heritage and community.\n\nThe challenges are real. Globalization and mass production often overshadow handmade goods, and younger generations sometimes turn away from traditional crafts. Yet artisans continue to adapt, using modern platforms to share their work with wider audiences. Markets, fairs, and cultural festivals provide spaces where their voices can be heard and their creations valued.\n\nFor Dr. Hayes, these artisans are more than producers of goods; they are guardians of memory. Their crafts remind us that culture is not static but alive, evolving with each generation while holding firm to its roots."
+          },
+          "questions": [
+            {
+              "number": 1,
+              "question": "According to the article, what challenge do artisans face today?",
+              "options": ["Lack of creativity", "Overshadowing by globalization and mass production", "Too many cultural festivals", "Excessive government support"],
+              "correct": 1
+            },
+            {
+              "number": 2,
+              "question": "What do artisans' crafts symbolize according to Dr. Hayes?",
+              "options": ["Economic competition", "Guardianship of memory and heritage", "Mass production efficiency", "Modern industrial progress"],
+              "correct": 1
+            }
+          ]
+        },
+        {
+          "number": 8,
+          "groupLabel": "Group 2",
+          "isConnector": true,
+          "connectorArticles": [
+            {
+              "letter": "A",
+              "title": "The Spirit of Local Markets",
+              "content": "Colorful stalls, lively voices, and the aroma of fresh food fill the air in local markets across the world. Once seen only as places to buy daily necessities, these markets are now celebrated as cultural landmarks, attracting visitors eager to experience authentic traditions.\n\n• Local markets showcase regional foods, crafts, and handmade goods.\n• They provide economic opportunities for small producers and artisans.\n• Tourists discover cultural heritage through flavors, colors, and conversations.\n• Markets strengthen community ties by bringing people together in shared spaces.\n• Sustainability is promoted through local sourcing and reduced transport.\n\nChallenges exist, of course. Modern supermarkets and online shopping compete with traditional markets, and maintaining hygiene and infrastructure requires effort. Yet the resilience of these spaces is undeniable.\n\nFor many communities, the market is more than commerce—it is a living stage where culture, identity, and human connection thrive. As cities grow and societies change, local markets remain a timeless reminder that tradition and community are treasures worth preserving."
+            },
+            {
+              "letter": "B",
+              "title": "The Evolution of Public Libraries",
+              "author": "Prof. Eleanor Grant",
+              "date": "April 27, 2026",
+              "bio": "",
+              "content": "Early Period (1830–1850) — Public libraries began as small collections funded by local communities and philanthropists. Their purpose was simple: to provide access to books for those who could not afford them. In these early years, libraries were modest, often housed in single rooms, but they represented a revolutionary idea—knowledge for all.\n\nMiddle Period (1850–1900) — With industrial growth and rising literacy rates, libraries expanded rapidly. Many cities built grand library buildings, often in neoclassical or Victorian styles. Collections grew to include newspapers, journals, and reference works. The library became not only a place to read but also a civic symbol of progress and education.\n\nLate Period (1900–1950) — Libraries embraced new technologies, such as card catalogs and lending systems, making access easier. They also began offering lectures, exhibitions, and children's programs. By mid-century, the public library had become a cornerstone of community life, adapting to social changes while preserving its mission of free access to knowledge.\n\nToday, libraries continue to evolve with digital resources, online catalogs, and multimedia collections. Yet their essence remains unchanged: they are spaces where learning, culture, and community converge."
+            },
+            {
+              "letter": "C",
+              "title": "Voices of Tradition: The Story of Local Artisans",
+              "author": "Dr. Samuel Hayes",
+              "date": "April 28, 2026",
+              "bio": "Dr. Samuel Hayes is a cultural historian and lecturer specializing in traditional crafts and community heritage.",
+              "content": "In every bustling market, behind the colorful stalls and handcrafted goods, there are artisans whose stories embody resilience and creativity. These men and women carry forward traditions that have been passed down through generations, shaping not only objects but also cultural identity.\n\nBorn into families of weavers, potters, and woodcarvers, many artisans begin their craft in childhood. Their skills are honed through practice, patience, and a deep respect for materials. Each piece they create—whether a woven basket, a ceramic vase, or a carved figure—tells a story of heritage and community.\n\nThe challenges are real. Globalization and mass production often overshadow handmade goods, and younger generations sometimes turn away from traditional crafts. Yet artisans continue to adapt, using modern platforms to share their work with wider audiences. Markets, fairs, and cultural festivals provide spaces where their voices can be heard and their creations valued.\n\nFor Dr. Hayes, these artisans are more than producers of goods; they are guardians of memory. Their crafts remind us that culture is not static but alive, evolving with each generation while holding firm to its roots."
+            }
+          ],
+          "questions": [
+            {
+              "number": 1,
+              "question": "What theme unites the three readings?",
+              "options": ["The decline of traditional culture", "The importance of preserving and adapting cultural traditions", "The rise of political institutions", "The dangers of globalization"],
+              "correct": 1
+            }
+          ]
+        }
+      ]
     }
   ]
 }

@@ -962,6 +962,32 @@ function buildQuestionGroups(partData, section, partId) {
         questions: groupQuestions
       });
     });
+  } else if (partData.readingGroups) {
+    partData.readingGroups.forEach(rg => {
+      const startNum = globalNum + 1;
+      const groupQuestions = rg.questions.map(q => {
+        globalNum++;
+        const processed = processQuestion(q, section, partId, globalNum);
+        processed.groupNumber = rg.number;
+        processed.mainAudio = null;
+        return processed;
+      });
+      const groupObj = {
+        groupNumber: rg.number,
+        mainAudio: null,
+        questionRange: { start: startNum, end: globalNum },
+        questions: groupQuestions
+      };
+      if (rg.article) {
+        groupObj.article = rg.article;
+      }
+      if (rg.isConnector) {
+        groupObj.isConnector = true;
+        groupObj.connectorArticles = rg.connectorArticles;
+      }
+      shuffledQuestions.push(...groupQuestions);
+      questionGroups.push(groupObj);
+    });
   }
 }
 
@@ -1060,8 +1086,16 @@ function renderGroupQuestions(grp) {
 
   let html = '<div class="question-group">';
 
+  if (grp.isConnector && grp.connectorArticles) {
+    grp.connectorArticles.forEach(art => {
+      html += renderMagazineArticle(art);
+    });
+  } else if (grp.article) {
+    html += renderMagazineArticle(grp.article);
+  }
+
   grp.questions.forEach((q, idx) => {
-    if (q.passage && idx === 0) {
+    if (q.passage && !grp.article && !grp.isConnector) {
       html += `<div class="reading-passage">${q.passage.replace(/\n/g, '<br>')}</div>`;
     }
 
@@ -1090,6 +1124,48 @@ function renderGroupQuestions(grp) {
     html += `<div class="group-q-feedback hidden" data-global="${globalNum}"></div>`;
     html += `</div>`;
   });
+
+  html += '</div>';
+
+  getElement('options-container').innerHTML = html;
+
+  document.querySelectorAll('.group-q-options .option:not(.disabled)').forEach(opt => {
+    opt.addEventListener('click', () => {
+      const globalNum = parseInt(opt.dataset.global);
+      const optIdx = parseInt(opt.dataset.option);
+      const questionIdx = shuffledQuestions.findIndex(q => q.globalNumber === globalNum);
+      selectGroupOption(questionIdx, optIdx, opt);
+    });
+  });
+}
+
+function renderMagazineArticle(art) {
+  let html = `<div class="magazine-article" data-article="${art.letter}">`;
+  html += `<div class="magazine-header">`;
+  html += `<span class="magazine-letter">Article ${art.letter}</span>`;
+  if (art.date) {
+    html += `<span class="magazine-date">${art.date}</span>`;
+  }
+  html += `</div>`;
+  html += `<h2 class="magazine-title">${art.title}</h2>`;
+
+  if (art.author) {
+    html += `<p class="magazine-author">By ${art.author}</p>`;
+  }
+  if (art.subheading) {
+    html += `<p class="magazine-subheading">${art.subheading}</p>`;
+  }
+
+  const contentFormatted = art.content.replace(/\n/g, '<br>');
+  html += `<div class="magazine-body">${contentFormatted}</div>`;
+
+  if (art.bio) {
+    html += `<p class="magazine-bio">${art.bio}</p>`;
+  }
+
+  html += `</div>`;
+  return html;
+}
 
   html += '</div>';
 
@@ -1719,6 +1795,38 @@ function buildAllSectionGroups(section) {
             questions: [processed]
           });
         });
+      } else if (part.readingGroups) {
+        part.readingGroups.forEach(rg => {
+          const groupStartLocal = partLocalNum + 1;
+          const groupQuestions = rg.questions.map(q => {
+            partLocalNum++;
+            sectionGlobalNum++;
+            const processed = processQuestion(q, section, partId, partLocalNum);
+            processed.groupNumber = rg.number;
+            processed.partKey = partKey;
+            processed.displayNumber = sectionGlobalNum;
+            return processed;
+          });
+          const groupData = {
+            groupNumber: rg.number,
+            mainAudio: null,
+            questionRange: { start: sectionGlobalNum - rg.questions.length + 1, end: sectionGlobalNum },
+            partId: partId,
+            partKey: partKey,
+            audioGroupNumber: null,
+            partLabel: `Part ${partId}`,
+            groupLabel: rg.groupLabel,
+            questions: groupQuestions
+          };
+          if (rg.article) {
+            groupData.article = rg.article;
+          }
+          if (rg.isConnector) {
+            groupData.isConnector = true;
+            groupData.connectorArticles = rg.connectorArticles;
+          }
+          allGroups.push(groupData);
+        });
       }
     });
   }
@@ -1772,7 +1880,14 @@ function renderSectionPreview() {
   allGroups.forEach((grp) => {
     const partLabel = grp.partLabel;
     let headerText = `${partLabel}`;
-    if (grp.audioGroupNumber) {
+    if (grp.groupLabel) {
+      headerText += ` ${grp.groupLabel}`;
+    }
+    if (grp.article) {
+      headerText += ` — Article ${grp.article.letter}`;
+    } else if (grp.isConnector) {
+      headerText += ` — Connector`;
+    } else if (grp.audioGroupNumber) {
       headerText += ` — Audio ${grp.audioGroupNumber}`;
     }
     const { start, end } = grp.questionRange;
@@ -1850,6 +1965,7 @@ function showResults() {
           catData.parts.forEach(p => {
             if (p.questions) count += p.questions.length;
             if (p.audioGroups) p.audioGroups.forEach(g => { count += g.questions.length; });
+            if (p.readingGroups) p.readingGroups.forEach(g => { count += g.questions.length; });
           });
         }
       }
@@ -1895,6 +2011,7 @@ function sendEmail() {
   if (quizData.READING_AND_GRAMMAR?.parts) {
     quizData.READING_AND_GRAMMAR.parts.forEach(item => {
       if (item.questions) readingCount += item.questions.length;
+      if (item.readingGroups) item.readingGroups.forEach(g => { readingCount += g.questions.length; });
     });
   }
 
