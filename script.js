@@ -1061,6 +1061,10 @@ function renderGroupQuestions(grp) {
   let html = '<div class="question-group">';
 
   grp.questions.forEach((q, idx) => {
+    if (q.passage && idx === 0) {
+      html += `<div class="reading-passage">${q.passage.replace(/\n/g, '<br>')}</div>`;
+    }
+
     const globalNum = q.globalNumber;
     const savedAnswer = getAnswerFromHash(currentPartKey, globalNum);
     const isAnswered = answeredQuestions.has(shuffledQuestions.indexOf(q));

@@ -1553,7 +1553,20 @@ h1 {
     padding: 12px;
   }
 
-  .group-q-text {
+.reading-passage {
+  background: #f8f9fa;
+  border-left: 4px solid #6366f1;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #333;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.group-q-text {
     font-size: 0.95rem;
   }
 
