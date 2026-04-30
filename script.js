@@ -1533,7 +1533,7 @@ async function submitWritingResponses() {
     await logWritingResponse(i < 3 ? i + 1 : 1, i < 3 ? 1 : 2, sectionResponses[i]);
   }
 
-  showWritingResults();
+  showResults();
 }
 
 function showWritingResults() {
@@ -1840,8 +1840,8 @@ function showResults() {
       const part2Answered = answered > part1Count ? 1 : 0;
       displayScore = `${part1Answered}/${part1Count} • ${part2Answered}/${part2Count}`;
     } else if (cat === 'LISTENING' || cat === 'READING_AND_GRAMMAR') {
+      let count = 0;
       if (catData) {
-        let count = 0;
         if (catData.parts) {
           catData.parts.forEach(p => {
             if (p.questions) count += p.questions.length;
@@ -1852,12 +1852,10 @@ function showResults() {
             if (item.questions) count += item.questions.length;
           });
         }
-        if (count > 0) {
-          totalParts += count;
-          totalScore += score[cat] || 0;
-          displayScore = `${score[cat] || 0}/${count}`;
-        }
       }
+      totalParts += count;
+      totalScore += score[cat] || 0;
+      displayScore = count > 0 ? `${score[cat] || 0}/${count}` : '0/0';
     } else if (cat === 'SPEAKING') {
       const partCount = 2;
       totalParts += partCount;
@@ -1866,15 +1864,13 @@ function showResults() {
       displayScore = `${answered}/${partCount}`;
     }
 
-    if (displayScore) {
-      const div = document.createElement('div');
-      div.className = 'result-category';
-      div.innerHTML = `
-        <span class="result-category-name">${catName}</span>
-        <span class="result-category-score">${displayScore}</span>
-      `;
-      breakdown.appendChild(div);
-    }
+    const div = document.createElement('div');
+    div.className = 'result-category';
+    div.innerHTML = `
+      <span class="result-category-name">${catName}</span>
+      <span class="result-category-score">${displayScore}</span>
+    `;
+    breakdown.appendChild(div);
   });
 
   const percentage = totalParts > 0 ? Math.round((totalScore / totalParts) * 100) : 0;
