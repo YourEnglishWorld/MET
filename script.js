@@ -3264,36 +3264,6 @@ async function continueFromSaved() {
   loadQuestion();
   resumeTimer();
 }
-      if (exercise.audioGroups) {
-        exercise.audioGroups.forEach(group => {
-          group.questions.forEach((q, qIndex) => {
-            const qCopy = Object.assign({}, q);
-            qCopy.exerciseIndex = exerciseIndex;
-            qCopy.questionIndex = qIndex;
-            qCopy.category = currentSection;
-            qCopy.mainAudio = group.mainAudio;
-            qCopy.extraAudio = q.extraAudio || null;
-            allQuestions.push(qCopy);
-          });
-        });
-      }
-    });
-  }
-  shuffledQuestions = saved.questionsOrder.map(order => {
-    const original = allQuestions.find(
-      q => q.exerciseIndex === order.exerciseIndex && q.questionIndex === order.questionIndex
-    );
-    if (!original) return null;
-    const shuffled = shuffleOptions(original);
-    shuffled.exerciseIndex = original.exerciseIndex;
-    shuffled.questionIndex = original.questionIndex;
-    return shuffled;
-  }).filter(item => item !== null);
-  getElement('category-select').classList.add('hidden');
-  getElement('quiz-view').classList.remove('hidden');
-  loadQuestion();
-  resumeTimer();
-}
 
 function initEventListeners() {
   getElement('next-btn')?.addEventListener('click', nextQuestion);
