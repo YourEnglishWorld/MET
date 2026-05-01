@@ -1705,6 +1705,11 @@ function updatePrevButtonVisibility() {
   const nextBtn = document.getElementById('next-btn');
   const submitBtn = document.getElementById('submit-section-btn');
   const skipBtn = document.getElementById('skip-btn');
+  const checkBtn = document.getElementById('check-btn');
+  const controlsSecondary = document.getElementById('controls-secondary');
+
+  if (checkBtn) checkBtn.classList.add('hidden');
+  if (controlsSecondary) controlsSecondary.classList.add('hidden');
 
   if (currentSection === 'WRITING') {
     const isPreview = currentWritingStep === WRITING_STEPS.PREVIEW;
@@ -1781,6 +1786,7 @@ function updatePrevButtonVisibility() {
       }
     }
   } else if (currentSection && !sectionPreviewMode) {
+    const grp = questionGroups[currentGroupIndex];
     const lastQ = isLastQuestionOfSection();
     const isLastPart = isLastPartOfSection();
     const nextPart = getNextPartKey();
@@ -1809,6 +1815,20 @@ function updatePrevButtonVisibility() {
         } else {
           skipBtn.classList.remove('btn-primary');
           skipBtn.classList.add('btn-secondary');
+        }
+      }
+    }
+
+    if (grp && grp.questions.length > 1) {
+      const allAnswered = grp.questions.every(q => {
+        const qi = shuffledQuestions.findIndex(sq => sq.globalNumber === q.globalNumber);
+        return answeredQuestions.has(qi);
+      });
+      const anySelected = grp.questions.some(q => groupSelectedAnswers[q.globalNumber] !== undefined);
+      if (!allAnswered && anySelected) {
+        if (checkBtn) {
+          checkBtn.classList.remove('hidden');
+          if (controlsSecondary) controlsSecondary.classList.remove('hidden');
         }
       }
     }
@@ -2832,8 +2852,9 @@ function showResults() {
   pauseTimer();
 
   hashNavigationLocked = true;
-  if (currentPartKey) {
-    window.location.hash = `#/${currentPartKey}/results`;
+  if (currentSection) {
+    const sectionHash = currentSection.toLowerCase().replace(/_/g, '-');
+    window.location.hash = `#/${sectionHash}/results`;
   }
   hashNavigationLocked = false;
 
@@ -3007,6 +3028,7 @@ async function continueFromSaved() {
 function initEventListeners() {
   getElement('next-btn')?.addEventListener('click', nextQuestion);
   getElement('prev-btn')?.addEventListener('click', previousQuestion);
+  getElement('check-btn')?.addEventListener('click', checkCurrentGroup);
   getElement('submit-section-btn')?.addEventListener('click', () => {
     if (currentSection === 'WRITING') {
       submitWritingResponses();

@@ -189,12 +189,17 @@
       </div>
 
       <div id="controls">
-        <button id="prev-btn" class="btn btn-secondary hidden">← Anterior</button>
-        <div class="controls-center">
-          <button id="next-btn" class="btn btn-primary">Siguiente</button>
-          <button id="submit-section-btn" class="btn btn-primary hidden">Confirmar</button>
+        <div class="controls-row controls-row-main">
+          <button id="prev-btn" class="btn btn-secondary hidden">← Anterior</button>
+          <div class="controls-center">
+            <button id="next-btn" class="btn btn-primary">Siguiente</button>
+            <button id="submit-section-btn" class="btn btn-primary hidden">Confirmar</button>
+          </div>
+          <button id="skip-btn" class="btn btn-secondary hidden">Skip</button>
         </div>
-        <button id="skip-btn" class="btn btn-secondary" title="Saltar al siguiente bloque">Skip</button>
+        <div class="controls-row controls-row-secondary hidden" id="controls-secondary">
+          <button id="check-btn" class="btn btn-primary hidden">COMPROBAR</button>
+        </div>
       </div>
 
       <footer id="quiz-footer">

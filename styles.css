@@ -290,22 +290,29 @@ h1 {
 }
 
 #controls {
-  position: relative;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.controls-row {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
   gap: 12px;
-  flex-wrap: wrap;
+  width: 100%;
 }
 
 .controls-center {
   display: flex;
   gap: 12px;
+  justify-content: center;
+  flex: 1;
 }
 
 #prev-btn {
-  position: absolute;
-  left: 0;
+  flex-shrink: 0;
 }
 
 #next-btn {
@@ -313,8 +320,7 @@ h1 {
 }
 
 #skip-btn {
-  position: absolute;
-  right: 0;
+  flex-shrink: 0;
 }
 
 .btn {
@@ -325,6 +331,7 @@ h1 {
   cursor: pointer;
   transition: all 0.3s ease;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .btn-primary {
@@ -1765,33 +1772,35 @@ h1 {
     padding: 0 4px;
   }
 
+  .controls-row {
+    gap: 8px;
+  }
+
   .btn {
     padding: 10px 16px;
     font-size: 0.8rem;
   }
 
   #prev-btn,
-  #skip-btn {
-    position: static;
+  #skip-btn,
+  #next-btn,
+  #submit-section-btn,
+  #check-btn {
+    flex-shrink: 0;
   }
 
   #skip-btn {
-    order: 1;
     margin-left: auto;
+    white-space: normal;
+    text-align: center;
+    max-width: 120px;
+    line-height: 1.2;
+    padding: 8px 12px;
   }
 
   .controls-center {
-    order: 0;
-    flex-grow: 1;
     justify-content: center;
-  }
-
-  #prev-btn {
-    order: -1;
-  }
-
-  #controls {
-    justify-content: space-between;
+    flex-grow: 1;
   }
 
   .magazine-title {
