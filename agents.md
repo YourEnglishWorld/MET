@@ -200,3 +200,67 @@ Use generic names that apply to all sections:
 Use section-specific names only where the functionality IS section-specific:
 - `renderWritingTask1()`, `renderWritingTask2()` - specific to Writing
 - `.writing-textarea` - specific ID/CSS class
+
+### Navigation and Buttons in MET Quiz
+
+Button PREVIOUS (ANTERIOR):
+- Location: in all questions/groups of a section, except the first one.
+- Function: goes back to the previous question/group, even if it requires moving back to a previous Part/Task.
+- Note: in groups of questions, only one button per group.
+
+Button NEXT (SIGUIENTE) / FINISH (FINALIZAR) (unified):
+- Normal state: shows "Next" and moves to the next question/part/task.
+- Special state: in the last question/group of the section, changes to "Finish section" with primary style and redirects to the section preview (#/[section-name]/preview).
+- Note: never redirects to Results or another section. In groups, only one button per group.
+
+Button SKIP TO:
+- Location: in all questions/groups except the last one of the section.
+- Function: redirects to the next Part of the section.
+- In the last Part: shows "Skip to Preview" and redirects to the section preview.
+- Label: dynamic, "Skip to [next block name]" obtained from the data array (no hardcoding).
+- Note: in groups of questions, only one button per group.
+
+Button CHECK (COMPROBAR):
+- Location: in MC individual questions (below each question) or in groups (one button per group).
+- Initial state: only CHECK is visible.
+- On click: highlights correct answers in blue, incorrect ones in gray, updates the response counter in localStorage, hides CHECK, and shows NEXT/FINISH in the same place.
+
+Button CONFIRM (CONFIRMAR):
+- Location: only in the preview of any section.
+- Function: redirects to the results page (#/results) using ShowResults().
+
+Visual placement:
+- Desktop:
+  - Left → PREVIOUS
+  - Center → NEXT/FINISH and CHECK
+  - Right → SKIP TO
+  - If SKIP does not apply, NEXT/FINISH moves to the right.
+- Mobile:
+  - First row → PREVIOUS (left), NEXT/FINISH (right)
+  - Second row → SKIP TO (right, dynamic label) and CHECK (center)
+  - Long labels (e.g., Skip to Part 2) may wrap into two lines.
+
+---
+
+### Response Tracking System
+
+What counts as a response:
+- MC: correctly answered questions.
+- Writing: any textarea with written text.
+- Speaking: any question with audio captured.
+
+Preview:
+- Must display all questions with their status:
+  - Correctly answered
+  - Wrong
+  - Skipped/not answered
+
+Results:
+- Only counts correct answers.
+- Does not add wrong or skipped ones.
+
+Home (progress percentage):
+- Under each section name, show a progress percentage.
+- Calculation: considers all answered questions (correct or wrong).
+- Skipped/not answered questions are not counted.
+- Example: if a section has 10 questions and the user answered 7 (even if 3 are wrong), progress shows 70%.
