@@ -3109,8 +3109,8 @@ function showResults() {
     let catName = SECTION_DISPLAY[cat] || cat;
 
     if (cat === 'WRITING') {
-      const part1Count = catData?.groups?.[0]?.task1?.length || 0;
-      const part2Count = catData?.groups?.[0]?.task2 ? 1 : 0;
+      const part1Count = (catData?.groups && catData.groups[0]?.task1?.length) || 0;
+      const part2Count = (catData?.groups && catData.groups[0]?.task2) ? 1 : 0;
       totalParts += part1Count + part2Count;
       const answered = sectionResponses.filter(r => r && r.length > 0).length;
       totalScore += Math.min(answered, part1Count);
@@ -3121,20 +3121,18 @@ function showResults() {
       displayScore = `${part1Answered}/${part1Count} • ${part2Answered}/${part2Count}`;
     } else if (cat === 'LISTENING' || cat === 'READING_AND_GRAMMAR') {
       let count = 0;
-      if (catData) {
-        if (catData.parts) {
-          catData.parts.forEach(p => {
-            if (p.questions) count += p.questions.length;
-            if (p.audioGroups) p.audioGroups.forEach(g => { count += g.questions.length; });
-            if (p.readingGroups) p.readingGroups.forEach(g => { count += g.questions.length; });
-          });
-        }
+      if (catData && catData.parts) {
+        catData.parts.forEach(p => {
+          if (p.questions) count += p.questions.length;
+          if (p.audioGroups) p.audioGroups.forEach(g => { count += g.questions.length; });
+          if (p.readingGroups) p.readingGroups.forEach(g => { count += g.questions.length; });
+        });
       }
       totalParts += count;
       totalScore += score[cat] || 0;
       displayScore = count > 0 ? `${score[cat] || 0}/${count}` : '0/0';
     } else if (cat === 'SPEAKING') {
-      const totalTasks = catData?.parts?.reduce((sum, p) => sum + (p.tasks?.length || 0), 0) || 0;
+      const totalTasks = (catData?.parts && catData.parts.reduce((sum, p) => sum + (p.tasks?.length || 0), 0)) || 0;
       totalParts += totalTasks;
       const answered = speakingResponses.filter(r => r).length;
       totalScore += answered;
@@ -3162,12 +3160,53 @@ function sendEmail() {
   let listeningCount = 0;
   let readingCount = 0;
 
-  if (quizData.LISTENING.parts) {
+  if (quizData.LISTENING && quizData.LISTENING.parts) {
     quizData.LISTENING.parts.forEach(p => {
       if (p.questions) listeningCount += p.questions.length;
       if (p.audioGroups) p.audioGroups.forEach(g => { listeningCount += g.questions.length; });
     });
   }
+
+  if (quizData.READING_AND_GRAMMAR && quizData.READING_AND_GRAMMAR.parts) {
+    quizData.READING_AND_GRAMMAR.parts.forEach(item => {
+      if (item.questions) readingCount += item.questions.length;
+      if (item.readingGroups) item.readingGroups.forEach(g => { readingCount += g.questions.length; });
+    });
+  }
+
+  const writingPart1 = (currentGroup?.task1 && currentGroup.task1.length) || 0;
+  const writingPart2 = currentGroup?.task2 ? 1 : 0;
+  const part1Answered = sectionResponses.filter((r, i) => r && r.length > 0 && i < writingPart1).length;
+  const part2Answered = (sectionResponses[writingPart1] && sectionResponses[writingPart1].length > 0) ? 1 : 0;
+  const speakingTaskCount = (quizData.SPEAKING && quizData.SPEAKING.parts && quizData.SPEAKING.parts.reduce((sum, p) => sum + (p.tasks?.length || 0), 0)) || 0;
+  const speakingAnswered = speakingResponses.filter(r => r).length;
+
+  const totalScore = score.WRITING + score.LISTENING + score.READING_AND_GRAMMAR + speakingAnswered;
+  const totalParts = writingPart1 + writingPart2 + listeningCount + readingCount + speakingTaskCount;
+  const percentage = totalParts > 0 ? Math.round((totalScore / totalParts) * 100) : 0;
+
+  const subject = 'Resultados MET Quiz - Your English World';
+  const speakingDetails = speakingResponses
+    .map((r, i) => r ? `  Task ${i + 1}: ${r.duration}s recorded` : `  Task ${i + 1}: No response`)
+    .join('\n');
+
+  const body = `Resultados del Test MET
+======================
+Puntuación Total: ${percentage}% (${totalScore}/${totalParts})
+
+Desglose por sección:
+- WRITING: ${part1Answered}/${writingPart1} • ${part2Answered}/${writingPart2}
+- LISTENING: ${score.LISTENING || 0}/${listeningCount}
+- READING & GRAMMAR: ${score.READING_AND_GRAMMAR || 0}/${readingCount}
+- SPEAKING: ${speakingAnswered}/${speakingTaskCount}
+${speakingDetails}
+
+---
+Enviado desde Your English World Quiz`;
+
+  const mailto = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.location.href = mailto;
+}
 
   if (quizData.READING_AND_GRAMMAR?.parts) {
     quizData.READING_AND_GRAMMAR.parts.forEach(item => {
