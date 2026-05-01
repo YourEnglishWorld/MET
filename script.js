@@ -3208,95 +3208,91 @@ Enviado desde Your English World Quiz`;
   window.location.href = mailto;
 }
 
-  if (quizData.READING_AND_GRAMMAR?.parts) {
-    quizData.READING_AND_GRAMMAR.parts.forEach(item => {
-      if (item.questions) readingCount += item.questions.length;
-      if (item.readingGroups) item.readingGroups.forEach(g => { readingCount += g.questions.length; });
+async function continueFromSaved() {
+  const saved = loadProgress();
+  if (!saved) return;
+  currentSection = saved.currentSection;
+  currentQuestionIndex = saved.currentIndex;
+  score = saved.score;
+  answeredQuestions = new Set(saved.answeredQuestions);
+  if (!currentSection || currentSection === 'WRITING') return;
+  const sourceData = quizData[currentSection];
+  if (!sourceData) return;
+
+  const allQuestions = [];
+  if (sourceData.parts) {
+    sourceData.parts.forEach((exercise, exerciseIndex) => {
+      if (exercise.questions) {
+        exercise.questions.forEach((q, qIndex) => {
+          const qCopy = Object.assign({}, q);
+          qCopy.exerciseIndex = exerciseIndex;
+          qCopy.questionIndex = qIndex;
+          qCopy.category = currentSection;
+          qCopy.audio = exercise.audio || null;
+          allQuestions.push(qCopy);
+        });
+      }
+      if (exercise.audioGroups) {
+        exercise.audioGroups.forEach(group => {
+          group.questions.forEach((q, qIndex) => {
+            const qCopy = Object.assign({}, q);
+            qCopy.exerciseIndex = exerciseIndex;
+            qCopy.questionIndex = qIndex;
+            qCopy.category = currentSection;
+            qCopy.mainAudio = group.mainAudio;
+            qCopy.extraAudio = q.extraAudio || null;
+            allQuestions.push(qCopy);
+          });
+        });
+      }
     });
   }
 
-  const writingPart1 = currentGroup?.task1?.length || 0;
-  const writingPart2 = currentGroup?.task2 ? 1 : 0;
-  const part1Answered = sectionResponses.filter((r, i) => r && r.length > 0 && i < writingPart1).length;
-  const part2Answered = sectionResponses[writingPart1] && sectionResponses[writingPart1].length > 0 ? 1 : 0;
-  const speakingTaskCount = quizData.SPEAKING?.parts?.reduce((sum, p) => sum + (p.tasks?.length || 0), 0) || 0;
-  const speakingAnswered = speakingResponses.filter(r => r).length;
+  shuffledQuestions = saved.questionsOrder.map(order => {
+    const original = allQuestions.find(
+      q => q.exerciseIndex === order.exerciseIndex && q.questionIndex === order.questionIndex
+    );
+    if (!original) return null;
+    const shuffled = shuffleOptions(original);
+    shuffled.exerciseIndex = original.exerciseIndex;
+    shuffled.questionIndex = original.questionIndex;
+    return shuffled;
+  }).filter(item => item !== null);
 
-  const totalScore = score.WRITING + score.LISTENING + score.READING_AND_GRAMMAR + speakingAnswered;
-  const totalParts = writingPart1 + writingPart2 + listeningCount + readingCount + speakingTaskCount;
-  const percentage = totalParts > 0 ? Math.round((totalScore / totalParts) * 100) : 0;
-
-  const subject = 'Resultados MET Quiz - Your English World';
-  const speakingDetails = speakingResponses
-    .map((r, i) => r ? `  Task ${i + 1}: ${r.duration}s recorded` : `  Task ${i + 1}: No response`)
-    .join('\n');
-
-  const body = `Resultados del Test MET
-=======================
-Puntuación Total: ${percentage}% (${totalScore}/${totalParts})
-
-Desglose por sección:
-- WRITING: ${part1Answered}/${writingPart1} • ${part2Answered}/${writingPart2}
-- LISTENING: ${score.LISTENING || 0}/${listeningCount}
-- READING & GRAMMAR: ${score.READING_AND_GRAMMAR || 0}/${readingCount}
-- SPEAKING: ${speakingAnswered}/${speakingTaskCount}
-${speakingDetails}
-
----
-Enviado desde Your English World Quiz`;
-
-  const mailto = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  window.location.href = mailto;
+  getElement('category-select').classList.add('hidden');
+  getElement('quiz-view').classList.remove('hidden');
+  loadQuestion();
+  resumeTimer();
 }
-
-async function continueFromSaved() {
-  const saved = loadProgress();
-  if (saved) {
-    currentSection = saved.currentSection;
-    currentQuestionIndex = saved.currentIndex;
-    score = saved.score;
-    answeredQuestions = new Set(saved.answeredQuestions);
-
-    if (currentSection && currentSection !== 'WRITING') {
-      const sourceData = quizData[currentSection];
-      if (!sourceData) return;
-
-      const allQuestions = [];
-      if (currentSection === 'LISTENING' && sourceData.parts) {
-        sourceData.parts.forEach((exercise, exerciseIndex) => {
-          if (exercise.questions) {
-            exercise.questions.forEach((q, qIndex) => {
-              allQuestions.push({ ...q, exerciseIndex, questionIndex: qIndex, category: currentSection, audio: exercise.audio || null });
-            });
-          }
-          if (exercise.audioGroups) {
-            exercise.audioGroups.forEach(group => {
-              group.questions.forEach((q, qIndex) => {
-                allQuestions.push({ ...q, exerciseIndex, questionIndex: qIndex, category: currentSection, mainAudio: group.mainAudio, extraAudio: q.extraAudio || null });
-              });
-            });
-          }
+      if (exercise.audioGroups) {
+        exercise.audioGroups.forEach(group => {
+          group.questions.forEach((q, qIndex) => {
+            const qCopy = Object.assign({}, q);
+            qCopy.exerciseIndex = exerciseIndex;
+            qCopy.questionIndex = qIndex;
+            qCopy.category = currentSection;
+            qCopy.mainAudio = group.mainAudio;
+            qCopy.extraAudio = q.extraAudio || null;
+            allQuestions.push(qCopy);
+          });
         });
       }
-
-      shuffledQuestions = saved.questionsOrder.map(order => {
-        const original = allQuestions.find(
-          q => q.exerciseIndex === order.exerciseIndex && q.questionIndex === order.questionIndex
-        );
-        return original ? {
-          ...shuffleOptions(original),
-          exerciseIndex: original.exerciseIndex,
-          questionIndex: original.questionIndex
-        } : null;
-      }).filter(Boolean);
-
-      getElement('category-select').classList.add('hidden');
-      getElement('quiz-view').classList.remove('hidden');
-
-      loadQuestion();
-      resumeTimer();
-    }
+    });
   }
+  shuffledQuestions = saved.questionsOrder.map(order => {
+    const original = allQuestions.find(
+      q => q.exerciseIndex === order.exerciseIndex && q.questionIndex === order.questionIndex
+    );
+    if (!original) return null;
+    const shuffled = shuffleOptions(original);
+    shuffled.exerciseIndex = original.exerciseIndex;
+    shuffled.questionIndex = original.questionIndex;
+    return shuffled;
+  }).filter(item => item !== null);
+  getElement('category-select').classList.add('hidden');
+  getElement('quiz-view').classList.remove('hidden');
+  loadQuestion();
+  resumeTimer();
 }
 
 function initEventListeners() {
