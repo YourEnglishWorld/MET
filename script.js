@@ -592,12 +592,14 @@ async function logActivity(action, detail = '') {
   };
 
   try {
-    await fetch(APPS_SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
+    if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_GOOGLE_APPS_SCRIPT_URL') {
+      await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+    }
   } catch (error) {
     console.log('Activity logged locally:', data);
   }
@@ -621,12 +623,14 @@ async function logWritingResponse(questionNum, task, response) {
   };
 
   try {
-    await fetch(APPS_SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
+    if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_GOOGLE_APPS_SCRIPT_URL') {
+      await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+    }
   } catch (error) {
     console.log('Writing response logged locally:', data);
   }
@@ -1399,6 +1403,7 @@ function navigateToNextGroup() {
   if (currentGroupIndex < questionGroups.length - 1) {
     currentGroupIndex++;
     loadGroup();
+    saveProgress();
   } else {
     navigateToNextPart();
   }
@@ -2027,6 +2032,8 @@ const SPEAKING_STEPS = {
 };
 
 function beginSpeaking(partKey, saved = null) {
+  stopSpeakingMic();
+
   const config = SECTION_CONFIG[partKey];
   if (!config || !config.partId) return false;
 
@@ -2253,6 +2260,21 @@ function stopAudioVisualization() {
   }
 }
 
+function stopSpeakingMic() {
+  if (speakingMediaRecorder && speakingMediaRecorder.state !== 'inactive') {
+    speakingMediaRecorder.stop();
+  }
+  if (speakingStream) {
+    speakingStream.getTracks().forEach(track => track.stop());
+    speakingStream = null;
+  }
+  if (speakingTimerInterval) {
+    clearInterval(speakingTimerInterval);
+    speakingTimerInterval = null;
+  }
+  stopAudioVisualization();
+}
+
 function playSpeakingRecording(taskIndex) {
   const response = speakingResponses[taskIndex];
   if (!response || !response.blob) return;
@@ -2426,6 +2448,7 @@ function previousQuestion() {
       const qNum = currentWritingStep === WRITING_STEPS.TASK2 ? 1 : currentWritingStep + 1;
       const taskPart = currentWritingStep === WRITING_STEPS.TASK2 ? 'task2' : 'task1';
       updateWritingHash(taskPart, qNum);
+      saveProgress();
     }
     return;
   }
@@ -2436,6 +2459,7 @@ function previousQuestion() {
   }
 
   navigateToPrevGroup();
+  saveProgress();
 }
 
 function nextQuestion() {
@@ -2458,6 +2482,9 @@ function goToPreview() {
 
   if (currentSection === 'WRITING') {
     saveCurrentWritingResponse();
+  }
+  if (currentSection === 'SPEAKING') {
+    stopSpeakingMic();
   }
   saveProgress();
 
@@ -2488,6 +2515,7 @@ function previousSpeakingTask() {
   if (speakingTaskIndex > 0) {
     speakingTaskIndex--;
     renderSpeakingTask();
+    saveProgress();
   }
 }
 
@@ -2701,7 +2729,7 @@ function renderSectionPreview() {
         }
       }
 
-      html += `<div class="preview-question">`;
+      html += `<div class="preview-question" data-global-num="${q.globalNumber}">`;
       html += `<div class="preview-q-text"><span class="preview-q-num">Q${displayNum}.</span> ${q.question}</div>`;
       html += `<div class="preview-q-answer ${statusClass}">`;
       html += answerDetail || statusText;
@@ -2720,6 +2748,13 @@ function renderSectionPreview() {
   getElement('question-text').classList.add('hidden');
   getElement('options-container').innerHTML = html;
   getElement('controls').classList.add('hidden');
+
+  document.querySelectorAll('.preview-question[data-global-num]').forEach(el => {
+    el.addEventListener('click', () => {
+      const globalNum = parseInt(el.dataset.globalNum);
+      navigateToQuestion(globalNum);
+    });
+  });
 }
 
 function renderSpeakingPreview() {
@@ -2771,10 +2806,13 @@ function renderSpeakingPreview() {
         html += `<div class="preview-q-answer correct">`;
         html += `✓ Response recorded (${duration}s)`;
         html += `<button class="btn-preview-playback" data-task-idx="${i}" style="margin-top:8px;">▶ Play recording</button>`;
+        html += `<button class="btn-preview-edit" data-task-idx="${i}" style="margin-top:8px;margin-left:8px;">✏️ Editar</button>`;
         html += `<audio class="hidden" id="preview-audio-${i}"></audio>`;
         html += `</div>`;
       } else {
-        html += `<div class="preview-q-answer unanswered">Sin respuesta</div>`;
+        html += `<div class="preview-q-answer unanswered">Sin respuesta`;
+        html += `<button class="btn-preview-edit" data-task-idx="${i}" style="margin-top:8px;margin-left:8px;">✏️ Editar</button>`;
+        html += `</div>`;
       }
 
       html += `</div></div>`;
@@ -2793,6 +2831,13 @@ function renderSpeakingPreview() {
       btn.addEventListener('click', () => {
         const taskIdx = parseInt(btn.dataset.taskIdx);
         playSpeakingPreviewRecording(taskIdx, btn);
+      });
+    });
+
+    document.querySelectorAll('.btn-preview-edit').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const taskIdx = parseInt(btn.dataset.taskIdx);
+        editSpeakingTask(taskIdx);
       });
     });
   }).catch(() => {
@@ -2827,6 +2872,35 @@ function playSpeakingPreviewRecording(taskIdx, btn) {
   };
 }
 
+function navigateToQuestion(globalNum) {
+  sectionPreviewMode = false;
+  const qIndex = shuffledQuestions.findIndex(q => q.globalNumber === globalNum);
+  if (qIndex === -1) return;
+
+  const targetGroupIndex = questionGroups.findIndex(g =>
+    g.questionRange.start <= globalNum && g.questionRange.end >= globalNum
+  );
+  if (targetGroupIndex === -1) return;
+
+  currentGroupIndex = targetGroupIndex;
+  currentGroup = questionGroups[currentGroupIndex];
+  currentQuestionIndex = qIndex;
+  groupChecked = false;
+
+  loadQuestion();
+  renderQuestion();
+  updateNavigationButtons();
+  updateTranscriptionVisibility();
+  resumeTimer();
+}
+
+function editSpeakingTask(taskIdx) {
+  speakingTaskIndex = taskIdx;
+  sectionPreviewMode = false;
+  renderSpeakingTask();
+  resumeTimer();
+}
+
 function renderSpeakingPreviewFallback() {
   getElement('category-badge').textContent = 'SPEAKING';
   getElement('progress-text').textContent = `Preview`;
@@ -2845,9 +2919,9 @@ function renderSpeakingPreviewFallback() {
     html += `<div class="preview-q-text">${task.prompt}</div>`;
 
     if (hasRecording) {
-      html += `<div class="preview-q-answer correct">✓ Response recorded (${duration}s)</div>`;
+      html += `<div class="preview-q-answer correct">✓ Response recorded (${duration}s)<button class="btn-preview-edit" data-task-idx="${i}" style="margin-top:8px;margin-left:8px;">✏️ Editar</button></div>`;
     } else {
-      html += `<div class="preview-q-answer unanswered">Sin respuesta</div>`;
+      html += `<div class="preview-q-answer unanswered">Sin respuesta<button class="btn-preview-edit" data-task-idx="${i}" style="margin-top:8px;margin-left:8px;">✏️ Editar</button></div>`;
     }
 
     html += `</div></div>`;
@@ -3076,11 +3150,12 @@ function initEventListeners() {
   getElement('skip-btn')?.addEventListener('click', () => {
     if (currentSection === 'WRITING') {
       saveCurrentWritingResponse();
-      saveProgress();
       if (currentWritingStep <= WRITING_STEPS.TASK1_Q3) {
         currentPartKey = 'WRITING_TASK2';
-        beginWriting('WRITING_TASK2');
-        startTimer('WRITING');
+        currentWritingStep = WRITING_STEPS.TASK2;
+        renderWritingStep();
+        updatePrevButtonVisibility();
+        saveProgress();
       } else {
         goToPreview();
       }
@@ -3210,6 +3285,7 @@ function initEventListeners() {
 
 function goHome() {
   stopTimer();
+  stopSpeakingMic();
 
   if (currentSection === 'WRITING') {
     saveCurrentWritingResponse();
