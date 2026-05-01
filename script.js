@@ -195,13 +195,25 @@ function saveAnswerToHash(answer, qGlobalNum) {
   const saved = JSON.parse(localStorage.getItem('metQuizProgress') || '{}');
   saved.answers = saved.answers || {};
   saved.answers[key] = answer;
+
+  // Update answersByPart for progress tracking
+  if (currentPartKey) {
+    saved.answersByPart = saved.answersByPart || {};
+    if (!saved.answersByPart[currentPartKey]) {
+      saved.answersByPart[currentPartKey] = [];
+    }
+    if (!saved.answersByPart[currentPartKey].includes(key)) {
+      saved.answersByPart[currentPartKey].push(key);
+    }
+  }
+
   saved.currentHash = window.location.hash;
   saved.currentSection = currentSection;
   saved.currentPartKey = currentPartKey;
   saved.currentGroupIndex = currentGroupIndex;
   saved.score = score;
   saved.answeredQuestions = Array.from(answeredQuestions);
-  saved.answersByPart = answersByPart;
+  saved.answersByPart = saved.answersByPart || answersByPart;
   saved.timerRemaining = timerRemaining;
   localStorage.setItem('metQuizProgress', JSON.stringify(saved));
 }
@@ -546,6 +558,7 @@ function getElement(id) {
 
 function saveUser(user) {
   localStorage.setItem('metQuizUser', JSON.stringify(user));
+  localStorage.setItem('metQuizTheme', document.documentElement.getAttribute('data-theme') || 'light');
   currentUser = user;
   updateUserDisplay();
 }
@@ -749,23 +762,28 @@ function renderCategorySelect() {
   container.innerHTML = '';
 
   const sections = [
-    { key: 'WRITING', name: 'Writing', parts: SECTION_PARTS.WRITING },
-    { key: 'LISTENING', name: 'Listening', parts: SECTION_PARTS.LISTENING },
-    { key: 'READING_AND_GRAMMAR', name: 'Reading & Grammar', parts: SECTION_PARTS.READING_AND_GRAMMAR },
-    { key: 'SPEAKING', name: 'Speaking', parts: SECTION_PARTS.SPEAKING }
+    { key: 'WRITING', name: 'Writing', description: 'Task 1 (3 questions) and Task 2 (essay of 250 words)', parts: SECTION_PARTS.WRITING },
+    { key: 'LISTENING', name: 'Listening', description: 'Multiple choice questions with audio. Parts 1-3, 50 questions total.', parts: SECTION_PARTS.LISTENING },
+    { key: 'READING_AND_GRAMMAR', name: 'Reading & Grammar', description: 'Grammar and reading comprehension. Parts 1-3, 50 questions total.', parts: SECTION_PARTS.READING_AND_GRAMMAR },
+    { key: 'SPEAKING', name: 'Speaking', description: 'Respond to prompts with recorded audio. Parts 1-2, 5 tasks total.', parts: SECTION_PARTS.SPEAKING }
   ];
 
   sections.forEach(sec => {
-    const sectionRow = document.createElement('div');
-    sectionRow.className = 'section-row';
+    const card = document.createElement('div');
+    card.className = 'home-card';
 
-    const titleRow = document.createElement('div');
-    titleRow.className = 'section-title';
-    titleRow.textContent = sec.name;
-    sectionRow.appendChild(titleRow);
+    const titleEl = document.createElement('div');
+    titleEl.className = 'home-card-title';
+    titleEl.textContent = sec.name;
+    card.appendChild(titleEl);
+
+    const descEl = document.createElement('div');
+    descEl.className = 'home-card-subtitle';
+    descEl.textContent = sec.description;
+    card.appendChild(descEl);
 
     const partsContainer = document.createElement('div');
-    partsContainer.className = 'section-parts';
+    partsContainer.className = 'home-card-parts';
 
     sec.parts.forEach(part => {
       const config = SECTION_CONFIG[part.key];
@@ -775,25 +793,30 @@ function renderCategorySelect() {
       const percent = partProgress.percent;
       const label = percent > 0 ? `${percent}%` : '';
 
-      const btn = document.createElement('button');
-      btn.className = 'category-btn part-btn';
+      const partBtn = document.createElement('div');
+      partBtn.className = 'home-card-part' + (!hasContent ? ' disabled' : '');
 
-      btn.innerHTML = label
-        ? `<strong>${part.name}</strong><span class="progress-badge">${label}</span>`
-        : `<strong>${part.name}</strong>`;
+      const partTitle = document.createElement('div');
+      partTitle.className = 'home-card-part-title';
+      partTitle.textContent = part.name;
+      partBtn.appendChild(partTitle);
 
       if (!hasContent) {
-        btn.style.opacity = '0.5';
-        btn.style.pointerEvents = 'none';
-        btn.innerHTML = `<strong>${part.name}</strong><span class="progress-badge">Soon</span>`;
+        partBtn.classList.add('coming-soon');
+      } else {
+        const progressEl = document.createElement('div');
+        progressEl.className = 'home-card-part-progress';
+        progressEl.textContent = label;
+        partBtn.appendChild(progressEl);
+
+        partBtn.addEventListener('click', () => startFromSection(part.key));
       }
 
-      btn.addEventListener('click', () => startFromSection(part.key));
-      partsContainer.appendChild(btn);
+      partsContainer.appendChild(partBtn);
     });
 
-    sectionRow.appendChild(partsContainer);
-    container.appendChild(sectionRow);
+    card.appendChild(partsContainer);
+    container.appendChild(card);
   });
 }
 
@@ -811,15 +834,37 @@ function getPartProgress(partKey, saved) {
 
   const section = getSectionKey(partKey);
   const config = SECTION_CONFIG[partKey];
-  const total = config ? config.items : 0;
 
-  if (!saved.answersByPart || !saved.answersByPart[partKey]) {
-    return { answered: 0, total, percent: 0 };
+  // MC sections (LISTENING, READING_AND_GRAMMAR)
+  if (section === 'LISTENING' || section === 'READING_AND_GRAMMAR') {
+    const total = config ? config.items : 0;
+    if (!saved.answersByPart || !saved.answersByPart[partKey]) {
+      return { answered: 0, total, percent: 0 };
+    }
+    const answered = saved.answersByPart[partKey].length;
+    const percent = answered > 0 && total > 0 ? Math.round((answered / total) * 100) : 0;
+    return { answered, total, percent };
   }
 
-  const answered = saved.answersByPart[partKey].length;
-  const percent = answered > 0 && total > 0 ? Math.round((answered / total) * 100) : 0;
-  return { answered, total, percent };
+  // WRITING section
+  if (section === 'WRITING') {
+    const total = 4; // 3 Task 1 questions + 1 Task 2
+    const writingResponses = saved.writingResponses || [];
+    const answered = writingResponses.filter(r => r && r.length > 0).length;
+    const percent = total > 0 ? Math.round((answered / total) * 100) : 0;
+    return { answered, total, percent };
+  }
+
+  // SPEAKING section
+  if (section === 'SPEAKING') {
+    const total = config ? config.items : 5; // Default to 5 tasks
+    const speakingResponses = saved.speakingResponses || [];
+    const answered = speakingResponses.filter(r => r !== null && r !== undefined).length;
+    const percent = total > 0 ? Math.round((answered / total) * 100) : 0;
+    return { answered, total, percent };
+  }
+
+  return { answered: 0, total: 0, percent: 0 };
 }
 
 function startFromSection(section) {
@@ -1699,8 +1744,8 @@ function isFirstQuestionOfSection() {
 }
 
 function getWritingNextPartName() {
-  if (currentWritingStep <= WRITING_STEPS.TASK1_Q3) {
-    return 'Task 2';
+  if (currentWritingStep >= WRITING_STEPS.TASK1_Q1 && currentWritingStep <= WRITING_STEPS.TASK1_Q3) {
+    return 'WRITING_TASK2';
   }
   return null;
 }
@@ -1713,154 +1758,156 @@ function updatePrevButtonVisibility() {
   const checkBtn = document.getElementById('check-btn');
   const controlsSecondary = document.getElementById('controls-secondary');
 
+  // Reset all buttons
+  if (prevBtn) prevBtn.classList.remove('hidden');
+  if (nextBtn) {
+    nextBtn.classList.remove('hidden');
+    nextBtn.textContent = 'Siguiente';
+    nextBtn.classList.remove('btn-primary');
+    nextBtn.classList.add('btn-secondary');
+  }
+  if (submitBtn) submitBtn.classList.add('hidden');
+  if (skipBtn) skipBtn.classList.add('hidden');
   if (checkBtn) checkBtn.classList.add('hidden');
   if (controlsSecondary) controlsSecondary.classList.add('hidden');
 
+  if (!currentSection) return;
+
+  // PREVIEW MODE - only Confirm button
+  if (sectionPreviewMode) {
+    if (prevBtn) prevBtn.classList.add('hidden');
+    if (nextBtn) nextBtn.classList.add('hidden');
+    if (submitBtn) {
+      submitBtn.classList.remove('hidden');
+      submitBtn.textContent = 'Confirmar';
+    }
+    return;
+  }
+
+  // Check if this is the first question/step
+  const isFirst = isFirstQuestionOfSection();
+  const isLastQ = isLastQuestionOfSection();
+  const isLastPart = isLastPartOfSection();
+  const nextPart = getNextPartKey();
+
+  // PREVIOUS: always show unless first question of section
+  if (prevBtn) {
+    prevBtn.classList.toggle('hidden', isFirst);
+  }
+
   if (currentSection === 'WRITING') {
     const isPreview = currentWritingStep === WRITING_STEPS.PREVIEW;
-    const lastQ = isLastQuestionOfSection();
 
     if (isPreview) {
-      prevBtn?.classList.add('hidden');
-      nextBtn?.classList.add('hidden');
-      submitBtn?.classList.remove('hidden');
-      submitBtn.textContent = 'Confirmar';
-      skipBtn?.classList.add('hidden');
-    } else {
-      prevBtn?.classList.toggle('hidden', isFirstQuestionOfSection());
-      nextBtn?.classList.remove('hidden');
-      submitBtn?.classList.add('hidden');
+      // Handled above in sectionPreviewMode check
+      return;
+    }
 
-      if (lastQ) {
+    // NEXT/FINISH button
+    if (nextBtn) {
+      if (isLastQ) {
         nextBtn.textContent = 'Finalizar sección';
         nextBtn.classList.remove('btn-secondary');
         nextBtn.classList.add('btn-primary');
-        skipBtn?.classList.add('hidden');
       } else {
         nextBtn.textContent = 'Siguiente';
-        nextBtn.classList.remove('btn-secondary');
-        nextBtn.classList.add('btn-primary');
-        if (skipBtn) {
-          skipBtn.classList.remove('hidden');
-          const targetName = getWritingNextPartName();
-          skipBtn.textContent = targetName ? `Skip to ${targetName}` : 'Skip to Preview';
-          skipBtn.classList.remove('btn-primary');
-          skipBtn.classList.add('btn-secondary');
-        }
+        nextBtn.classList.remove('btn-primary');
+        nextBtn.classList.add('btn-secondary');
       }
     }
+
+    // SKIP TO button
+    if (skipBtn) {
+      skipBtn.classList.remove('hidden');
+      const targetName = getWritingNextPartName();
+      skipBtn.textContent = targetName ? `Skip to ${targetName}` : 'Skip to Preview';
+      skipBtn.classList.remove('btn-primary');
+      skipBtn.classList.add('btn-secondary');
+    }
+
   } else if (currentSection === 'SPEAKING') {
     const pastTasks = speakingTaskIndex >= speakingPart.tasks.length;
 
     if (pastTasks) {
-      prevBtn?.classList.add('hidden');
-      nextBtn?.classList.add('hidden');
-      submitBtn?.classList.remove('hidden');
-      submitBtn.textContent = 'Confirmar';
-      skipBtn?.classList.add('hidden');
-    } else {
-      prevBtn?.classList.toggle('hidden', isFirstQuestionOfSection());
-      submitBtn?.classList.add('hidden');
-      const lastQ = isLastQuestionOfSection();
-      const isLastPart = isLastPartOfSection();
-      const nextPart = getNextPartKey();
+      // Should be in preview mode
+      return;
+    }
 
-      if (lastQ) {
-        nextBtn?.classList.remove('hidden');
+    // NEXT/FINISH button
+    if (nextBtn) {
+      if (isLastQ) {
         nextBtn.textContent = 'Finalizar sección';
         nextBtn.classList.remove('btn-secondary');
         nextBtn.classList.add('btn-primary');
-        skipBtn?.classList.add('hidden');
       } else {
-        nextBtn?.classList.remove('hidden');
         nextBtn.textContent = 'Siguiente';
-        nextBtn.classList.remove('btn-secondary');
-        nextBtn.classList.add('btn-primary');
-        if (skipBtn) {
-          skipBtn.classList.remove('hidden');
-          const targetName = nextPart ? `Skip to ${nextPart.name}` : 'Skip to Preview';
-          skipBtn.textContent = targetName;
-          if (isLastPart) {
-            skipBtn.classList.remove('btn-secondary');
-            skipBtn.classList.add('btn-primary');
-          } else {
-            skipBtn.classList.remove('btn-primary');
-            skipBtn.classList.add('btn-secondary');
-          }
-        }
+        nextBtn.classList.remove('btn-primary');
+        nextBtn.classList.add('btn-secondary');
       }
     }
-  } else if (currentSection && !sectionPreviewMode) {
+
+    // SKIP TO button
+    if (skipBtn && !isLastQ) {
+      skipBtn.classList.remove('hidden');
+      const targetName = nextPart ? `Skip to ${nextPart.name}` : 'Skip to Preview';
+      skipBtn.textContent = targetName;
+      if (isLastPart) {
+        skipBtn.classList.remove('btn-secondary');
+        skipBtn.classList.add('btn-primary');
+      } else {
+        skipBtn.classList.remove('btn-primary');
+        skipBtn.classList.add('btn-secondary');
+      }
+    }
+
+  } else {
+    // MC sections (LISTENING, READING_AND_GRAMMAR)
     const grp = questionGroups[currentGroupIndex];
-    const isSingleQuestion = grp ? grp.questions.length === 1 : true;
     const allChecked = grp && grp.questions.every(q => {
       const qi = shuffledQuestions.findIndex(sq => sq.globalNumber === q.globalNumber);
       return answeredQuestions.has(qi);
     });
 
-    prevBtn?.classList.toggle('hidden', isFirstQuestionOfSection());
-    submitBtn?.classList.add('hidden');
-
-    const lastQ = isLastQuestionOfSection();
-    const isLastPart = isLastPartOfSection();
-    const nextPart = getNextPartKey();
-
-    if (allChecked) {
-      nextBtn?.classList.remove('hidden');
-      nextBtn.textContent = lastQ ? 'Finalizar sección' : 'Siguiente';
-      nextBtn.classList.remove('btn-secondary');
-      nextBtn.classList.add('btn-primary');
-      if (checkBtn) checkBtn.classList.add('hidden');
-      if (controlsSecondary) controlsSecondary.classList.add('hidden');
-    } else {
-      nextBtn?.classList.add('hidden');
-      if (checkBtn) {
-        const anySelected = grp && grp.questions.some(q => groupSelectedAnswers[q.globalNumber] !== undefined);
-        if (anySelected) {
-          checkBtn.classList.remove('hidden');
-          if (controlsSecondary) controlsSecondary.classList.remove('hidden');
+    // NEXT/FINISH button - only show when group is checked
+    if (nextBtn) {
+      if (allChecked) {
+        nextBtn.classList.remove('hidden');
+        if (isLastQ) {
+          nextBtn.textContent = 'Finalizar sección';
+          nextBtn.classList.remove('btn-secondary');
+          nextBtn.classList.add('btn-primary');
         } else {
-          checkBtn.classList.add('hidden');
-          if (controlsSecondary) controlsSecondary.classList.add('hidden');
+          nextBtn.textContent = 'Siguiente';
+          nextBtn.classList.remove('btn-primary');
+          nextBtn.classList.add('btn-secondary');
         }
+      } else {
+        nextBtn.classList.add('hidden');
       }
     }
 
-    if (!lastQ && !allChecked) {
-      if (skipBtn) {
-        skipBtn.classList.remove('hidden');
-        const targetName = nextPart ? `Skip to ${nextPart.name}` : 'Skip to Preview';
-        skipBtn.textContent = targetName;
-        if (isLastPart) {
-          skipBtn.classList.remove('btn-secondary');
-          skipBtn.classList.add('btn-primary');
-        } else {
-          skipBtn.classList.remove('btn-primary');
-          skipBtn.classList.add('btn-secondary');
-        }
+    // CHECK button - show when at least one option selected but not all answered
+    if (checkBtn && grp) {
+      const anySelected = grp.questions.some(q => groupSelectedAnswers[q.globalNumber] !== undefined);
+      if (anySelected && !allChecked) {
+        checkBtn.classList.remove('hidden');
+        if (controlsSecondary) controlsSecondary.classList.remove('hidden');
       }
-    } else if (!lastQ && allChecked) {
-      if (skipBtn) {
-        skipBtn.classList.remove('hidden');
-        const targetName = nextPart ? `Skip to ${nextPart.name}` : 'Skip to Preview';
-        skipBtn.textContent = targetName;
-        if (isLastPart) {
-          skipBtn.classList.remove('btn-secondary');
-          skipBtn.classList.add('btn-primary');
-        } else {
-          skipBtn.classList.remove('btn-primary');
-          skipBtn.classList.add('btn-secondary');
-        }
-      }
-    } else {
-      skipBtn?.classList.add('hidden');
     }
-  } else if (sectionPreviewMode) {
-    prevBtn?.classList.add('hidden');
-    nextBtn?.classList.add('hidden');
-    submitBtn?.classList.remove('hidden');
-    submitBtn.textContent = 'Confirmar';
-    skipBtn?.classList.add('hidden');
+
+    // SKIP TO button
+    if (skipBtn && !isLastQ) {
+      skipBtn.classList.remove('hidden');
+      const targetName = nextPart ? `Skip to ${nextPart.name}` : 'Skip to Preview';
+      skipBtn.textContent = targetName;
+      if (isLastPart) {
+        skipBtn.classList.remove('btn-secondary');
+        skipBtn.classList.add('btn-primary');
+      } else {
+        skipBtn.classList.remove('btn-primary');
+        skipBtn.classList.add('btn-secondary');
+      }
+    }
   }
 }
 
@@ -2396,7 +2443,7 @@ function showWritingResults() {
   breakdown.innerHTML = `
     <div class="result-category">
       <span class="result-category-name">WRITING</span>
-      <span class="result-category-score">${part1Answered}/${part1Count} • ${part2Answered}/${part2Count}</span>
+      <span class="result-category-score">${part1Answered}/${part1Count} completed • ${part2Answered}/${part2Count} completed</span>
     </div>
   `;
 
@@ -2413,6 +2460,11 @@ function navigateToNextPart() {
   }
 
   saveProgress();
+
+  // Stop mic if leaving Speaking
+  if (currentSection === 'SPEAKING') {
+    stopSpeakingMic();
+  }
 
   if (currentSection === 'SPEAKING') {
     beginSpeaking(nextPart.key);
@@ -2432,8 +2484,18 @@ function navigateToPart(partKey) {
 
   pauseTimer();
   saveProgress();
-  beginMcPart(partKey);
-  startTimer(currentSection);
+
+  if (targetSection === 'WRITING') {
+    beginQuiz(partKey);
+    startTimer(targetSection);
+  } else if (targetSection === 'SPEAKING') {
+    stopSpeakingMic();
+    beginSpeaking(partKey);
+    startTimer(targetSection);
+  } else {
+    beginMcPart(partKey);
+    startTimer(targetSection);
+  }
 }
 
 function previousQuestion() {
@@ -2493,7 +2555,7 @@ function goToPreview() {
   window.location.hash = `#/${sectionHash}/preview`;
   hashNavigationLocked = false;
 
-  renderSectionPreview();
+  renderUnifiedPreview();
 }
 
 function nextSpeakingTask() {
@@ -2637,19 +2699,8 @@ function buildAllSectionGroups(section) {
   return allGroups;
 }
 
-function renderSectionPreview() {
+function renderUnifiedPreview() {
   sectionPreviewMode = true;
-
-  if (currentSection === 'WRITING') {
-    currentWritingStep = WRITING_STEPS.PREVIEW;
-    renderWritingStep();
-    return;
-  }
-
-  if (currentSection === 'SPEAKING') {
-    renderSpeakingPreview();
-    return;
-  }
 
   getElement('category-select').classList.add('hidden');
   getElement('quiz-view').classList.remove('hidden');
@@ -2666,12 +2717,8 @@ function renderSectionPreview() {
     container.style.animation = 'fadeIn 0.5s ease';
   }, 300);
 
-  const allGroups = buildAllSectionGroups(currentSection);
-  let answeredCount = 0;
-  let totalQ = 0;
-
   getElement('category-badge').textContent = getSectionBadge(currentPartKey);
-  getElement('progress-text').textContent = `Preview`;
+  getElement('progress-text').textContent = 'Preview';
   getElement('progress-bar').style.width = '100%';
 
   getElement('audio-container').classList.add('hidden');
@@ -2681,6 +2728,110 @@ function renderSectionPreview() {
 
   let html = '<div class="preview-section"><h3>Revisa tus respuestas</h3>';
   html += '<div class="preview-scroll-container">';
+
+  if (currentSection === 'WRITING') {
+    html += renderWritingPreviewItems();
+  } else if (currentSection === 'SPEAKING') {
+    html += renderSpeakingPreviewItems();
+  } else {
+    html += renderMCpreviewItems();
+  }
+
+  html += '</div>';
+  html += `<div class="preview-summary">${getPreviewSummary()}</div>`;
+  html += `<div class="preview-submit-container"><button class="btn-submit-preview" onclick="submitFromPreview()">ENVIAR</button></div>`;
+  html += '</div>';
+
+  getElement('question-text').classList.add('hidden');
+  getElement('options-container').innerHTML = html;
+  getElement('controls').classList.add('hidden');
+
+  // Attach event listeners
+  attachPreviewItemListeners();
+}
+
+function renderWritingPreviewItems() {
+  if (!currentGroup) return '';
+  const task1 = currentGroup.task1 || [];
+  const task2 = currentGroup.task2;
+  let html = '';
+
+  // Task 1 Questions
+  task1.forEach((q, i) => {
+    const response = sectionResponses[i] || '';
+    const hasResponse = response.length > 0;
+    const statusClass = hasResponse ? 'answered' : 'unanswered';
+    const statusText = hasResponse ? `Answered (${response.length} chars)` : 'Sin respuesta';
+    const canEdit = timerRemaining > 0;
+
+    html += `<div class="preview-slide" data-writing-step="${WRITING_STEPS.TASK1_Q1 + i}">`;
+    html += `<div class="preview-slide-header">Task 1 — Question ${i + 1} of 3</div>`;
+    html += `<div class="preview-question">`;
+    html += `<div class="preview-q-text"><span class="preview-q-num">Q${i + 1}.</span> ${q.text}</div>`;
+    html += `<div class="preview-q-answer ${statusClass}">${statusText}`;
+    if (canEdit) {
+      html += ` <button class="btn-preview-edit" data-writing-step="${WRITING_STEPS.TASK1_Q1 + i}" style="margin-left:8px;">✏️ Edit</button>`;
+    }
+    html += `</div></div></div>`;
+  });
+
+  // Task 2
+  if (task2) {
+    const response = sectionResponses[3] || '';
+    const hasResponse = response.length > 0;
+    const statusClass = hasResponse ? 'answered' : 'unanswered';
+    const statusText = hasResponse ? `Answered (${response.length} chars)` : 'Sin respuesta';
+    const canEdit = timerRemaining > 0;
+
+    html += `<div class="preview-slide" data-writing-step="${WRITING_STEPS.TASK2}">`;
+    html += `<div class="preview-slide-header">Task 2 — Essay</div>`;
+    html += `<div class="preview-question">`;
+    html += `<div class="preview-q-text"><span class="preview-q-num">Essay:</span> ${task2.topic}</div>`;
+    html += `<div class="preview-q-answer ${statusClass}">${statusText}`;
+    if (canEdit) {
+      html += ` <button class="btn-preview-edit" data-writing-step="${WRITING_STEPS.TASK2}" style="margin-left:8px;">✏️ Edit</button>`;
+    }
+    html += `</div></div></div>`;
+  }
+
+  return html;
+}
+
+function renderSpeakingPreviewItems() {
+  if (!speakingPart) return '';
+  const tasks = speakingPart.tasks || [];
+  let html = '';
+
+  tasks.forEach((task, i) => {
+    const hasRecording = speakingResponses[i] !== null && speakingResponses[i] !== undefined;
+    const duration = hasRecording ? speakingResponses[i].duration : null;
+    const statusClass = hasRecording ? 'correct' : 'unanswered';
+    const statusText = hasRecording ? `✓ Response recorded (${duration}s)` : 'Sin respuesta';
+    const canEdit = timerRemaining > 0;
+
+    html += `<div class="preview-slide" data-speaking-task="${i}">`;
+    html += `<div class="preview-slide-header">Task ${task.number} — ${task.timeLimit}s limit</div>`;
+    html += `<div class="preview-question">`;
+    html += `<div class="preview-q-text"><span class="preview-q-num">Prompt:</span> ${task.prompt}</div>`;
+    html += `<div class="preview-q-answer ${statusClass}">${statusText}`;
+    if (hasRecording) {
+      html += ` <button class="btn-preview-playback" data-task-idx="${i}" style="margin-left:8px;">▶ Play</button>`;
+      html += `<audio class="hidden" id="preview-audio-${i}"></audio>`;
+    }
+    if (canEdit) {
+      html += ` <button class="btn-preview-edit-speaking" data-task-idx="${i}" style="margin-left:8px;">✏️ Edit</button>`;
+    }
+    html += `</div></div></div>`;
+  });
+
+  return html;
+}
+
+function renderMCPreviewItems() {
+  const allGroups = buildAllSectionGroups(currentSection);
+  let html = '';
+  let answeredCount = 0;
+  let totalQ = 0;
 
   allGroups.forEach((grp) => {
     const partLabel = grp.partLabel;
@@ -2710,7 +2861,6 @@ function renderSectionPreview() {
       if (isAnswered) answeredCount++;
 
       let statusClass = 'unanswered';
-      let statusText = 'Sin responder';
       let answerDetail = '';
 
       if (isAnswered && questionIdx >= 0) {
@@ -2724,125 +2874,118 @@ function renderSectionPreview() {
           const userText = sq.options ? sq.options[userAnswerIdx] : userLetter;
           const correctText = sq.options ? sq.options[sq.correctShuffledIndex] : correctLetter;
           answerDetail = isCorrect
-            ? `✓ Tu respuesta: ${userLetter}. ${userText}`
-            : `✗ Tu respuesta: ${userLetter}. ${userText} — Correcta: ${correctLetter}. ${correctText}`;
+            ? `✓ Your answer: ${userLetter}. ${userText}`
+            : `✗ Your answer: ${userLetter}. ${userText} — Correct: ${correctLetter}. ${correctText}`;
         }
       }
 
-      html += `<div class="preview-question" data-global-num="${q.globalNumber}">`;
+      html += `<div class="preview-question">`;
       html += `<div class="preview-q-text"><span class="preview-q-num">Q${displayNum}.</span> ${q.question}</div>`;
       html += `<div class="preview-q-answer ${statusClass}">`;
-      html += answerDetail || statusText;
+      html += answerDetail || 'Sin responder';
       html += `</div></div>`;
     });
 
     html += '</div>';
   });
 
-  html += '</div>';
+  // Store for summary
+  renderMCPreviewItems.answeredCount = answeredCount;
+  renderMCPreviewItems.totalQ = totalQ;
 
-  html += `<div class="preview-summary">${answeredCount}/${totalQ} respondidas</div>`;
-  html += `<div class="preview-submit-container"><button class="btn-submit-preview" onclick="submitFromPreview()">ENVIAR</button></div>`;
-  html += '</div>';
+  return html;
+}
 
-  getElement('question-text').classList.add('hidden');
-  getElement('options-container').innerHTML = html;
-  getElement('controls').classList.add('hidden');
+function getPreviewSummary() {
+  if (currentSection === 'WRITING') {
+    const total = 4;
+    const answered = sectionResponses.filter(r => r && r.length > 0).length;
+    return `${answered}/${total} answered`;
+  } else if (currentSection === 'SPEAKING') {
+    const total = speakingPart ? speakingPart.tasks.length : 0;
+    const answered = speakingResponses.filter(r => r !== null && r !== undefined).length;
+    return `${answered}/${total} answered`;
+  } else {
+    const answered = renderMCPreviewItems.answeredCount || 0;
+    const total = renderMCPreviewItems.totalQ || 0;
+    return `${answered}/${total} answered`;
+  }
+}
 
-  document.querySelectorAll('.preview-question[data-global-num]').forEach(el => {
-    el.addEventListener('click', () => {
-      const globalNum = parseInt(el.dataset.globalNum);
-      navigateToQuestion(globalNum);
+function attachPreviewItemListeners() {
+  // MC items are NOT editable — no click handler to navigate back
+
+  // Writing edit buttons
+  document.querySelectorAll('.btn-preview-edit').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const step = parseInt(btn.dataset.writingStep);
+      editWritingFromPreview(step);
+    });
+  });
+
+  // Speaking playback buttons
+  document.querySelectorAll('.btn-preview-playback').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const taskIdx = parseInt(btn.dataset.taskIdx);
+      playSpeakingPreviewRecording(taskIdx, btn);
+    });
+  });
+
+  // Speaking edit buttons
+  document.querySelectorAll('.btn-preview-edit-speaking').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const taskIdx = parseInt(btn.dataset.taskIdx);
+      editSpeakingTask(taskIdx);
     });
   });
 }
 
-function renderSpeakingPreview() {
-  getElement('category-select').classList.add('hidden');
-  getElement('quiz-view').classList.remove('hidden');
-  getElement('results-container').classList.add('hidden');
+function editWritingFromPreview(step) {
+  document.removeEventListener('keydown', handleCarouselKeydown);
+  saveCurrentWritingResponse();
 
-  const container = getElement('quiz-container');
-  container.classList.remove('fade-out');
-  void container.offsetWidth;
-  container.classList.add('fade-out');
-  setTimeout(() => {
-    container.classList.remove('fade-out');
-    container.style.animation = 'none';
-    void container.offsetWidth;
-    container.style.animation = 'fadeIn 0.5s ease';
-  }, 300);
+  currentWritingStep = step;
+  sectionPreviewMode = false;
+  renderWritingStep();
 
-  getElement('audio-container').classList.add('hidden');
-  getElement('transcription-toggle').classList.add('hidden');
-  getElement('transcription-text').classList.add('hidden');
-  getElement('reading-text').classList.add('hidden');
-  getElement('feedback-container').classList.add('hidden');
+  const taskPart = step === WRITING_STEPS.TASK2 ? 'task2' : 'task1';
+  const qNum = step === WRITING_STEPS.TASK2 ? 1 : step + 1;
+  updateWritingHash(taskPart, qNum);
+}
 
-  getAllSpeakingAudio().then(records => {
-    const speakingPartData = speakingPart;
-    if (!speakingPartData) return;
+function renderSpeakingPreviewFallback() {
+  getElement('category-badge').textContent = 'SPEAKING';
+  getElement('progress-text').textContent = `Preview`;
+  getElement('progress-bar').style.width = '100%';
 
-    const tasks = speakingPartData.tasks;
-    const answered = speakingResponses.filter(r => r !== null && r !== undefined).length;
+  let html = '<div class="preview-section"><h3>Revisa tus respuestas de Speaking</h3>';
+  html += '<div class="preview-scroll-container">';
 
-    getElement('category-badge').textContent = 'SPEAKING';
-    getElement('progress-text').textContent = `Preview`;
-    getElement('progress-bar').style.width = '100%';
-
-    let html = '<div class="preview-section"><h3>Revisa tus respuestas de Speaking</h3>';
-    html += '<div class="preview-scroll-container">';
-
-    tasks.forEach((task, i) => {
+  if (speakingPart && speakingPart.tasks) {
+    speakingPart.tasks.forEach((task, i) => {
       const hasRecording = speakingResponses[i] !== null && speakingResponses[i] !== undefined;
       const duration = hasRecording ? speakingResponses[i].duration : null;
 
       html += `<div class="preview-slide">`;
-      html += `<div class="preview-slide-header">Task ${task.number} — ${task.timeLimit}s limit</div>`;
+      html += `<div class="preview-slide-header">Task ${task.number}</div>`;
       html += `<div class="preview-question">`;
-      html += `<div class="preview-q-text"><span class="preview-q-num">Prompt:</span> ${task.prompt}</div>`;
+      html += `<div class="preview-q-text">${task.prompt}</div>`;
 
       if (hasRecording) {
-        html += `<div class="preview-q-answer correct">`;
-        html += `✓ Response recorded (${duration}s)`;
-        html += `<button class="btn-preview-playback" data-task-idx="${i}" style="margin-top:8px;">▶ Play recording</button>`;
-        html += `<button class="btn-preview-edit" data-task-idx="${i}" style="margin-top:8px;margin-left:8px;">✏️ Editar</button>`;
-        html += `<audio class="hidden" id="preview-audio-${i}"></audio>`;
-        html += `</div>`;
+        html += `<div class="preview-q-answer correct">✓ Response recorded (${duration}s)<button class="btn-preview-edit" data-task-idx="${i}" style="margin-top:8px;margin-left:8px;">✏️ Editar</button></div>`;
       } else {
-        html += `<div class="preview-q-answer unanswered">Sin respuesta`;
-        html += `<button class="btn-preview-edit" data-task-idx="${i}" style="margin-top:8px;margin-left:8px;">✏️ Editar</button>`;
-        html += `</div>`;
+        html += `<div class="preview-q-answer unanswered">Sin respuesta<button class="btn-preview-edit" data-task-idx="${i}" style="margin-top:8px;margin-left:8px;">✏️ Editar</button></div>`;
       }
 
       html += `</div></div>`;
     });
+  }
 
-    html += '</div>';
-    html += `<div class="preview-summary">${answered}/${tasks.length} respondidas</div>`;
-    html += `<div class="preview-submit-container"><button class="btn-submit-preview" onclick="submitFromPreview()">ENVIAR</button></div>`;
-    html += '</div>';
+  html += '</div></div>';
 
-    getElement('question-text').classList.add('hidden');
-    getElement('options-container').innerHTML = html;
-    getElement('controls').classList.add('hidden');
-
-    document.querySelectorAll('.btn-preview-playback').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const taskIdx = parseInt(btn.dataset.taskIdx);
-        playSpeakingPreviewRecording(taskIdx, btn);
-      });
-    });
-
-    document.querySelectorAll('.btn-preview-edit').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const taskIdx = parseInt(btn.dataset.taskIdx);
-        editSpeakingTask(taskIdx);
-      });
-    });
-  }).catch(() => {
-    renderSpeakingPreviewFallback();
-  });
+  getElement('question-text').classList.add('hidden');
+  getElement('options-container').innerHTML = html;
+  getElement('controls').classList.add('hidden');
 }
 
 function playSpeakingPreviewRecording(taskIdx, btn) {
@@ -3150,12 +3293,9 @@ function initEventListeners() {
   getElement('skip-btn')?.addEventListener('click', () => {
     if (currentSection === 'WRITING') {
       saveCurrentWritingResponse();
-      if (currentWritingStep <= WRITING_STEPS.TASK1_Q3) {
-        currentPartKey = 'WRITING_TASK2';
-        currentWritingStep = WRITING_STEPS.TASK2;
-        renderWritingStep();
-        updatePrevButtonVisibility();
-        saveProgress();
+      const nextPartKey = getWritingNextPartName();
+      if (nextPartKey) {
+        navigateToPart(nextPartKey);
       } else {
         goToPreview();
       }
@@ -3310,6 +3450,7 @@ function goHome() {
 async function init() {
   loadUser();
   updateUserDisplay();
+  initTheme();
   initEventListeners();
 
   const loaded = await loadAllData();
@@ -3318,6 +3459,28 @@ async function init() {
     loadFromHash();
   } else {
     renderCategorySelect();
+  }
+}
+
+function initTheme() {
+  const themeSwitch = document.getElementById('theme-switch');
+  const savedTheme = localStorage.getItem('metQuizTheme') || 'light';
+  
+  if (savedTheme === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    if (themeSwitch) themeSwitch.checked = true;
+  }
+  
+  if (themeSwitch) {
+    themeSwitch.addEventListener('change', function() {
+      if (this.checked) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        localStorage.setItem('metQuizTheme', 'dark');
+      } else {
+        document.documentElement.setAttribute('data-theme', 'light');
+        localStorage.setItem('metQuizTheme', 'light');
+      }
+    });
   }
 }
 

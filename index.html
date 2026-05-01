@@ -15,6 +15,16 @@
   </script>
 </head>
 <body>
+  <!-- Dark Mode Toggle -->
+  <div class="theme-toggle-container">
+    <label class="theme-toggle" for="theme-switch">
+      <input type="checkbox" id="theme-switch">
+      <span class="theme-slider"></span>
+      <span class="theme-icon sun">☀️</span>
+      <span class="theme-icon moon">🌙</span>
+    </label>
+  </div>
+
   <!-- Datalist for email autocomplete -->
   <datalist id="email-domains">
     <option value="gmail.com">
@@ -145,6 +155,9 @@
         <p class="subtitle">MET quiz</p>
       </header>
       <div id="category-buttons"></div>
+      <div id="home-description" class="home-description">
+        <p>Select a section to start practicing for your MET exam.</p>
+      </div>
       <footer id="home-footer"></footer>
     </div>
 
