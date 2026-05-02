@@ -17,8 +17,8 @@ const SECTION_CONFIG = {
   READING_AND_GRAMMAR: { time: 65 * 60, parts: 3, items: 50, name: 'reading' },
   SPEAKING: { time: 10 * 60, parts: 2, items: 5, name: 'speaking' },
   // Configuración de cada parte individual (Task 1, Task 2, Part 1, etc.)
-  WRITING_TASK1: { time: 30 * 60, tasks: 1, items: 3, name: 'writing-task1', parentSection: 'WRITING' },
-  WRITING_TASK2: { time: 45 * 60, tasks: 1, items: 1, name: 'writing-task2', parentSection: 'WRITING' },
+  WRITING_TASK1: { time: 30 * 60, tasks: 1, items: 3, name: 'writing-task1', parentSection: 'WRITING', partId: 1 },
+  WRITING_TASK2: { time: 45 * 60, tasks: 1, items: 1, name: 'writing-task2', parentSection: 'WRITING' , partId: 2 },
   LISTENING_P1: { time: 35 * 60, parts: 3, items: 19, name: 'listening-p1', parentSection: 'LISTENING', partId: 1 },
   LISTENING_P2: { time: 35 * 60, parts: 3, items: 14, name: 'listening-p2', parentSection: 'LISTENING', partId: 2 },
   LISTENING_P3: { time: 35 * 60, parts: 3, items: 17, name: 'listening-p3', parentSection: 'LISTENING', partId: 3 },
@@ -1800,13 +1800,18 @@ function isFirstQuestionOfSection() {
   return false;
 }
 
-// Obtiene el nombre de la siguiente parte de Writing
+// Obtiene el nombre de la siguiente parte de Writing de forma dinámica
 function getWritingNextPartName() {
+  // Si estamos en Task 1, el siguiente es Task 2
   if (currentWritingStep >= WRITING_STEPS.TASK1_Q1 && currentWritingStep <= WRITING_STEPS.TASK1_Q3) {
     const writingParts = SECTION_PARTS.WRITING;
     if (!writingParts) return 'Task 2';
     const task2Part = writingParts.find(p => p.key.endsWith('TASK2'));
     return task2Part ? task2Part.name : 'Task 2';
+  }
+  // Si estamos en Task 2, el siguiente es Preview
+  if (currentWritingStep === WRITING_STEPS.TASK2) {
+    return 'Preview';
   }
   return null;
 }
@@ -3297,9 +3302,21 @@ function initEventListeners() {
   getElement('skip-btn')?.addEventListener('click', () => {
     if (currentSection === 'WRITING') {
       saveCurrentWritingResponse();
-      const nextPartKey = getWritingNextPartName();
-      if (nextPartKey) {
-        navigateToPart(nextPartKey);
+      const nextPartName = getWritingNextPartName();
+      // Si estamos en Task 1, saltar a Task 2
+      if (nextPartName === 'Task 2') {
+        currentWritingStep = WRITING_STEPS.TASK2;
+        renderWritingStep();
+        updateWritingHash('task2', 1);
+      }
+      // Si estamos en Task 2, ir a Preview
+      else if (nextPartName === 'Preview') {
+        currentWritingStep = WRITING_STEPS.PREVIEW;
+        goToPreview();
+      }
+      // Fallback: intentar navegar por partKey
+      else if (nextPartName) {
+        navigateToPart(nextPartName);
       } else {
         goToPreview();
       }
