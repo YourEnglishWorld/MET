@@ -1485,7 +1485,7 @@ function renderSpeakingStep(item, partData) {
 
   const container = getElement("options-container");
   const taskIndex = item.itemNum - 1;
-  const task = partData.task[taskIndex];
+  const task = partData.tasks[taskIndex];
 
   if (!task) return;
 
@@ -2568,10 +2568,29 @@ function beginSpeaking(partKey, saved = null) {
           };
         }
       });
-      renderStep("SPEAKING", currentPartKey, speakingPart, "audio");
+      // Find correct itemIndex for renderStep
+      const sectionParts = SECTION_PARTS["SPEAKING"];
+      const itemIndex = sectionParts.findIndex(
+        (item) => item.partKey === currentPartKey,
+      );
+      renderStep(
+        "SPEAKING",
+        itemIndex >= 0 ? itemIndex : 0,
+        speakingPart,
+        "audio",
+      );
     })
     .catch(() => {
-      renderStep("SPEAKING", currentPartKey, speakingPart, "audio");
+      const sectionParts = SECTION_PARTS["SPEAKING"];
+      const itemIndex = sectionParts.findIndex(
+        (item) => item.partKey === currentPartKey,
+      );
+      renderStep(
+        "SPEAKING",
+        itemIndex >= 0 ? itemIndex : 0,
+        speakingPart,
+        "audio",
+      );
     });
 
   updatePrevButtonVisibility();
