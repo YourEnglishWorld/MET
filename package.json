@@ -1,0 +1,13 @@
+{
+  "name": "met-quiz",
+  "version": "1.0.0",
+  "description": "MET Quiz web app for Your English World",
+  "scripts": {
+    "lint": "eslint script.js",
+    "format": "prettier --write script.js styles.css"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "prettier": "^3.2.5"
+  }
+}
