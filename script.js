@@ -350,6 +350,11 @@ function loadFromHash() {
 
 window.addEventListener('hashchange', loadFromHash);
 
+// Inicializar la página al cargar
+window.addEventListener('load', () => {
+  loadFromHash();
+});
+
 // Convierte segundos a formato de tiempo (MM:SS)
 function formatTime(seconds) {
   const mins = Math.floor(seconds / 60);
