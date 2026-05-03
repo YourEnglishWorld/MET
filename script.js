@@ -984,7 +984,7 @@ function beginQuiz(section) {
   if (section.startsWith('WRITING') || section === 'WRITING') {
     const parts = SECTION_PARTS.WRITING;
     const partKey = section.startsWith('WRITING_T') ? section : (parts && parts[0] ? parts[0].key : 'WRITING_TASK1');
-    beginWriting(partKey, saved, SECTION_CONFIG.WRITING);
+    beginWriting(partKey, saved);
     return;
   }
 
@@ -1012,8 +1012,8 @@ function beginQuiz(section) {
   alert('Esta sección aún no tiene contenido.');
 }
 
-// Inicia la sección de Writing
-function beginWriting(partKey, saved, config) {
+// Inicia la sección de Writing (universal para textarea inputType)
+function beginWriting(partKey, saved) {
   if (!quizData.WRITING || !quizData.WRITING.groups || quizData.WRITING.groups.length === 0) {
     alert('La sección de Writing aún no tiene contenido.');
     return;
