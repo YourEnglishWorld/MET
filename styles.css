@@ -1279,39 +1279,6 @@ h1 {
   display: none;
 }
 
-.writing-instructions {
-  text-align: left;
-  margin-bottom: 20px;
-}
-
-.instructions-toggle {
-  margin-bottom: 10px;
-}
-
-.btn-toggle {
-  background: none;
-  border: none;
-  color: var(--color-primary);
-  font-size: 0.95rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background-color: rgba(102, 126, 234, 0.1);
-  border-radius: 8px;
-  transition: all 0.3s ease;
-}
-
-.btn-toggle:hover {
-  background-color: rgba(102, 126, 234, 0.2);
-}
-
-.toggle-icon {
-  font-size: 0.8rem;
-  transition: transform 0.3s ease;
-}
-
 .instructions-content {
   padding: 15px;
   background-color: var(--bg-secondary);
