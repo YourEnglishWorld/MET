@@ -1844,17 +1844,7 @@ function loadGroup() {
 function renderGroupQuestions(grp) {
   getElement("question-text").classList.add("hidden");
 
-  const isSingleQuestion = grp.questions.length === 1;
-
-  let html = '<div class="question-group">';
-
-  if (grp.isConnector && grp.connectorArticles) {
-    grp.connectorArticles.forEach((art) => {
-      html += renderMagazineArticle(art);
-    });
-  } else if (grp.article) {
-    html += renderMagazineArticle(grp.article);
-  }
+  let html = "";
 
   grp.questions.forEach((q, idx) => {
     if (q.passage && !grp.article && !grp.isConnector) {
@@ -1897,10 +1887,6 @@ function renderGroupQuestions(grp) {
 
     html += `</div>`;
 
-    if (isSingleQuestion && !isAnswered) {
-      html += `<button class="check-single-btn" data-global="${globalNum}">COMPROBAR</button>`;
-    }
-
     html += `<div class="group-q-feedback ${isAnswered ? "" : "hidden"}" data-global="${globalNum}">`;
     if (isAnswered && savedAnswer) {
       const isCorrect = letters[q.correctShuffledIndex] === savedAnswer;
@@ -1927,13 +1913,6 @@ function renderGroupQuestions(grp) {
         selectGroupOption(globalNum, optIdx, opt);
       });
     });
-
-  document.querySelectorAll(".check-single-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const globalNum = parseInt(btn.dataset.global);
-      checkSingleQuestion(globalNum);
-    });
-  });
 
   const checkGroupBtn = document.getElementById("check-group-btn");
   if (checkGroupBtn) {
@@ -1980,7 +1959,6 @@ function selectGroupOption(globalNum, optionIdx, element) {
   if (questionIdx < 0 || answeredQuestions.has(questionIdx)) return;
 
   const grp = questionGroups[currentGroupIndex];
-  const isSingleQuestion = grp.questions.length === 1;
 
   document
     .querySelectorAll(`.option[data-global="${globalNum}"]`)
@@ -1989,75 +1967,11 @@ function selectGroupOption(globalNum, optionIdx, element) {
 
   groupSelectedAnswers[globalNum] = optionIdx;
 
-  if (isSingleQuestion) {
-    const checkBtn = document.querySelector(
-      `.check-single-btn[data-global="${globalNum}"]`,
-    );
-    if (checkBtn) {
-      checkBtn.classList.remove("hidden");
-      checkBtn.style.display = "";
-    }
+  // Show the main check button in the controls bar for single questions
+  const checkBtn = document.getElementById("check-btn");
+  if (checkBtn && grp.questions.length === 1) {
+    checkBtn.classList.remove("hidden");
   }
-
-  updatePrevButtonVisibility();
-}
-
-// Revisa una pregunta individual
-function checkSingleQuestion(globalNum) {
-  const questionIdx = shuffledQuestions.findIndex(
-    (q) => q.globalNumber === globalNum,
-  );
-  if (questionIdx < 0 || answeredQuestions.has(questionIdx)) return;
-  if (groupSelectedAnswers[globalNum] === undefined) return;
-
-  const question = shuffledQuestions[questionIdx];
-  const optIdx = groupSelectedAnswers[globalNum];
-
-  const feedback = document.querySelector(
-    `.group-q-feedback[data-global="${globalNum}"]`,
-  );
-  const options = document.querySelectorAll(
-    `.option[data-global="${globalNum}"]`,
-  );
-  const selectedOpt = document.querySelector(
-    `.option[data-global="${globalNum}"][data-option="${optIdx}"]`,
-  );
-
-  options.forEach((opt) => {
-    opt.classList.add("disabled");
-    opt.style.pointerEvents = "none";
-  });
-
-  const isCorrect = optIdx === question.correctShuffledIndex;
-
-  if (isCorrect) {
-    score[question.category]++;
-    selectedOpt.classList.add("correct");
-    if (feedback) {
-      feedback.className = "group-q-feedback correct";
-      feedback.textContent = "¡Correcto!";
-    }
-  } else {
-    selectedOpt.classList.add("incorrect");
-    const correctOpt = document.querySelector(
-      `.option[data-global="${globalNum}"][data-option="${question.correctShuffledIndex}"]`,
-    );
-    if (correctOpt) correctOpt.classList.add("correct");
-    if (feedback) {
-      feedback.className = "group-q-feedback incorrect";
-      feedback.textContent = `Incorrecto. Respuesta correcta: ${letters[question.correctShuffledIndex]}.`;
-    }
-  }
-
-  answeredQuestions.add(questionIdx);
-  saveAnswerToHash(letters[optIdx], globalNum);
-  pauseTimer();
-  saveProgress();
-
-  const checkBtn = document.querySelector(
-    `.check-single-btn[data-global="${globalNum}"]`,
-  );
-  if (checkBtn) checkBtn.style.display = "none";
 
   updatePrevButtonVisibility();
 }
