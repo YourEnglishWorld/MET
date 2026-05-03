@@ -5,9 +5,9 @@
 // Datos de las preguntas - se cargan desde los archivos JSON
 const quizData = {
   WRITING: null, // Datos de Writing (se cargan después)
-  LISTENING: [], // Preguntas de Listening
-  READING_AND_GRAMMAR: [], // Preguntas de Reading & Grammar
-  SPEAKING: [], // Preguntas de Speaking
+  LISTENING: null, // Preguntas de Listening
+  READING_AND_GRAMMAR: null, // Preguntas de Reading & Grammar
+  SPEAKING: null, // Preguntas de Speaking
 };
 
 // Configuración de cada sección: tiempo en segundos, partes, etc.
@@ -1053,33 +1053,33 @@ function flattenQuestions(category, data) {
 
 async function loadAllData() {
   try {
-    const [writing, listening, readingAndGrammar, speaking] = await Promise.all(
-      [
-        fetch("data/writing.json")
-          .then((r) => r.json())
-          .catch(() => null),
-        fetch("data/listening.json")
-          .then((r) => r.json())
-          .catch(() => []),
-        fetch("data/reading.json")
-          .then((r) => r.json())
-          .catch(() => []),
-        fetch("data/speaking.json")
-          .then((r) => r.json())
-          .catch(() => []),
-      ],
-    );
+    const [writing, listening, readingAndGrammar, speaking] = await Promise.all([
+      fetch("data/writing.json")
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null),
+      fetch("data/listening.json")
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null),
+      fetch("data/reading.json")
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null),
+      fetch("data/speaking.json")
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null),
+    ]);
 
     quizData.WRITING = writing;
     quizData.LISTENING = listening;
     quizData.READING_AND_GRAMMAR = readingAndGrammar;
     quizData.SPEAKING = speaking;
 
+    console.log("Data loaded:", quizData);
     return true;
   } catch (error) {
     console.error("Error loading data:", error);
     return false;
   }
+}
 }
 
 // Muestra la pantalla de inicio con las categorías
