@@ -246,10 +246,13 @@ const SECTION_PARTS = {
     { key: "READING_P2", name: "Part 2", time: 65 * 60 },
     { key: "READING_P3", name: "Part 3", time: 65 * 60 },
   ],
-  // Speaking tiene 2 partes
+  // Speaking tiene 2 partes, 5 tareas total (3 en Part 1, 2 en Part 2)
   SPEAKING: [
-    { key: "SPEAKING_P1", name: "Part 1", time: 10 * 60 },
-    { key: "SPEAKING_P2", name: "Part 2", time: 10 * 60 },
+    { inputType: 'audio', task: 1, number: 1, partKey: 'SPEAKING_P1', partLabel: 'Part 1', itemNum: 1, totalInPart: 3 },
+    { inputType: 'audio', task: 1, number: 2, partKey: 'SPEAKING_P1', partLabel: 'Part 1', itemNum: 2, totalInPart: 3 },
+    { inputType: 'audio', task: 1, number: 3, partKey: 'SPEAKING_P1', partLabel: 'Part 1', itemNum: 3, totalInPart: 3 },
+    { inputType: 'audio', task: 2, number: 1, partKey: 'SPEAKING_P2', partLabel: 'Part 2', itemNum: 1, totalInPart: 2 },
+    { inputType: 'audio', task: 2, number: 2, partKey: 'SPEAKING_P2', partLabel: 'Part 2', itemNum: 2, totalInPart: 2 }
   ],
 };
 
@@ -1338,6 +1341,217 @@ function beginWriting(partKey, saved) {
   startTimer("WRITING");
 }
 
+// Universal step renderer for Writing (textarea) and Speaking (audio)
+function renderStep(section, itemIndex, partData, inputType) {
+  const container = getElement("quiz-container");
+  container.classList.remove("fade-out");
+  void container.offsetWidth;
+  container.classList.add("fade-out");
+  setTimeout(() => {
+    container.classList.remove("fade-out");
+    container.style.animation = "none";
+    void container.offsetWidth;
+    container.style.animation = "fadeIn 0.5s ease";
+  }, 300);
+
+  updateSectionProgress();
+
+  getElement("transcription-toggle").innerHTML = "";
+  getElement("transcription-toggle").classList.add("hidden");
+  getElement("transcription-text").classList.add("hidden");
+  getElement("reading-text").classList.add("hidden");
+  getElement("feedback-container").classList.add("hidden");
+  getElement("controls").classList.remove("hidden");
+
+  const sectionParts = SECTION_PARTS[section];
+  const currentItem = sectionParts ? sectionParts[itemIndex] : null;
+
+  if (inputType === "textarea" && section === "WRITING") {
+    renderWritingStep(currentItem, partData);
+  } else if (inputType === "audio" && section === "SPEAKING") {
+    renderSpeakingStep(currentItem, partData);
+  }
+
+  updatePrevButtonVisibility();
+  resumeTimer();
+}
+
+// Render Writing step (textarea input)
+function renderWritingStep(item, group) {
+  if (!item) return;
+
+  const container = getElement("options-container");
+  const isEssay = item.isEssay || false;
+  const limit = isEssay ? TASK2_CHAR_LIMIT : TASK1_CHAR_LIMIT;
+
+  let html = '<div class="writing-question">';
+  html += `<div class="writing-question-text">${item.partLabel} - Question ${item.itemNum}</div>`;
+
+  if (isEssay) {
+    const groupData = group;
+    html += `<div class="writing-task-prompt">${groupData.task2.topic}</div>`;
+    html += `<div class="writing-task-prompt" style="font-style:italic">${groupData.task2.prompt}</div>`;
+  } else {
+    const taskData = group.task1.find((t) => t.number === item.itemNum);
+    if (taskData) {
+      html += `<div class="writing-task-prompt">${taskData.text}</div>`;
+    }
+  }
+
+  const savedResponse = sectionResponses[item.itemNum - 1] || "";
+  html += `<textarea id="writing-textarea" class="writing-textarea${isEssay ? " writing-textarea-large" : ""}" placeholder="Write your response here...">${savedResponse}</textarea>`;
+  html += `<div class="char-counter" id="char-count-container">`;
+  html += `<span id="char-count">${savedResponse.length}</span> / ${limit}`;
+  html += `</div></div>`;
+
+  getElement("question-text").classList.add("hidden");
+  container.innerHTML = html;
+
+  setTimeout(() => setupTextareaEvents(), 0);
+}
+
+// Render Speaking step (audio input)
+function renderSpeakingStep(item, partData) {
+  if (!item) return;
+
+  const container = getElement("options-container");
+  const taskIndex = item.itemNum - 1;
+  const task = partData.tasks[taskIndex];
+
+  if (!task) return;
+
+  let html = '<div class="speaking-task-container">';
+  html += `<div class="writing-question-text">${item.partLabel} - Task ${item.itemNum}</div>`;
+  html += `<div class="writing-task-prompt">${task.prompt}</div>`;
+  html += `<div class="speaking-timer" id="speaking-timer-display">Time: ${formatTime(task.timeLimit)}</div>`;
+  html += `<div class="speaking-controls">`;
+  html += `<button id="start-recording-btn" class="btn btn-primary">Begin speaking now</button>`;
+  html += `<button id="stop-recording-btn" class="btn btn-secondary hidden">Stop recording</button>`;
+  html += `</div>`;
+  html += `<div id="recording-status" class="hidden"></div>`;
+  html += `<audio id="playback-audio" controls class="hidden"></audio>`;
+  html += `</div>`;
+
+  getElement("question-text").classList.add("hidden");
+  container.innerHTML = html;
+
+  setupSpeakingEvents(taskIndex, task.timeLimit);
+}
+
+// Setup Speaking recording events
+function setupSpeakingEvents(taskIndex, timeLimit) {
+  const startBtn = getElement("start-recording-btn");
+  const stopBtn = getElement("stop-recording-btn");
+  const statusEl = getElement("recording-status");
+  const playbackAudio = getElement("playback-audio");
+
+  if (startBtn) {
+    startBtn.onclick = () => startSpeakingRecording(taskIndex, timeLimit);
+  }
+  if (stopBtn) {
+    stopBtn.onclick = () => stopSpeakingRecording(taskIndex);
+  }
+
+  // Load saved recording if exists
+  getSpeakingAudio(taskIndex).then((record) => {
+    if (record && record.blob) {
+      speakingResponses[taskIndex] = {
+        blob: record.blob,
+        duration: record.duration,
+        timestamp: record.timestamp,
+      };
+      if (playbackAudio) {
+        playbackAudio.src = URL.createObjectURL(record.blob);
+        playbackAudio.classList.remove("hidden");
+      }
+      if (statusEl) {
+        statusEl.textContent = "Recording saved";
+        statusEl.classList.remove("hidden");
+      }
+    }
+  });
+}
+
+// Start Speaking recording
+async function startSpeakingRecording(taskIndex, timeLimit) {
+  const startBtn = getElement("start-recording-btn");
+  const stopBtn = getElement("stop-recording-btn");
+  const statusEl = getElement("recording-status");
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    speakingStream = stream;
+    speakingMediaRecorder = new MediaRecorder(stream);
+    speakingAudioChunks = [];
+
+    speakingMediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) speakingAudioChunks.push(event.data);
+    };
+
+    speakingMediaRecorder.onstop = () => {
+      const blob = new Blob(speakingAudioChunks, { type: "audio/webm" });
+      const duration = timeLimit - speakingTimerRemaining;
+      speakingResponses[taskIndex] = { blob, duration, timestamp: Date.now() };
+      saveSpeakingAudio(taskIndex, blob, duration);
+
+      const playbackAudio = getElement("playback-audio");
+      if (playbackAudio) {
+        playbackAudio.src = URL.createObjectURL(blob);
+        playbackAudio.classList.remove("hidden");
+      }
+
+      if (statusEl) {
+        statusEl.textContent = "Recording saved";
+        statusEl.classList.remove("hidden");
+      }
+
+      if (startBtn) startBtn.classList.remove("hidden");
+      if (stopBtn) stopBtn.classList.add("hidden");
+
+      saveProgress();
+      updatePrevButtonVisibility();
+    };
+
+    speakingMediaRecorder.start();
+    speakingTimerRemaining = timeLimit;
+    updateSpeakingTimerDisplay();
+
+    if (startBtn) startBtn.classList.add("hidden");
+    if (stopBtn) stopBtn.classList.remove("hidden");
+    if (statusEl) {
+      statusEl.textContent = "Recording...";
+      statusEl.classList.remove("hidden");
+    }
+  } catch (error) {
+    console.error("Error starting recording:", error);
+    alert("Could not access microphone. Please check permissions.");
+  }
+}
+
+// Stop Speaking recording
+function stopSpeakingRecording(taskIndex) {
+  if (speakingMediaRecorder && speakingMediaRecorder.state !== "inactive") {
+    speakingMediaRecorder.stop();
+    if (speakingStream) {
+      speakingStream.getTracks().forEach((track) => track.stop());
+      speakingStream = null;
+    }
+  }
+}
+
+// Update Speaking timer display
+function updateSpeakingTimerDisplay() {
+  const timerDisplay = getElement("speaking-timer-display");
+  if (timerDisplay) {
+    timerDisplay.textContent = `Time: ${formatTime(speakingTimerRemaining)}`;
+  }
+
+  if (speakingTimerRemaining > 0 && speakingMediaRecorder && speakingMediaRecorder.state === "recording") {
+    speakingTimerRemaining--;
+    setTimeout(updateSpeakingTimerDisplay, 1000);
+  }
+}
+
 // Inicia una parte de preguntas de opción múltiple (Listening o Reading)
 function beginMcPart(partKey, saved = null) {
   const config = SECTION_CONFIG[partKey];
@@ -2294,3 +2508,229 @@ function beginSpeaking(partKey, saved = null) {
 
 // Dibuja la tarea actual de Speaking
 // Empieza a grabar la respuesta de Speaking
+
+// Navigate to preview using universal renderPreview
+function goToPreview() {
+  sectionPreviewMode = true;
+  const sectionParts = SECTION_PARTS[currentSection];
+  renderPreview(currentSection, sectionParts, currentSection === 'SPEAKING' ? 'audio' : (currentSection === 'WRITING' ? 'textarea' : 'mc'));
+}
+
+// Universal preview renderer
+function renderPreview(section, items, inputType) {
+  const container = getElement('quiz-container');
+  container.innerHTML = '';
+  container.classList.remove('fade-out');
+  void container.offsetWidth;
+  container.classList.add('fade-out');
+  setTimeout(() => {
+    container.classList.remove('fade-out');
+    container.style.animation = 'none';
+    void container.offsetWidth;
+    container.style.animation = 'fadeIn 0.5s ease';
+  }, 300);
+
+  getElement('question-text').classList.add('hidden');
+  getElement('options-container').innerHTML = '';
+  getElement('audio-container').classList.add('hidden');
+  getElement('transcription-toggle').classList.add('hidden');
+  getElement('transcription-text').classList.add('hidden');
+  getElement('reading-text').classList.add('hidden');
+  getElement('feedback-container').classList.add('hidden');
+
+  let html = '<div class="preview-scroll-container">';
+  html += `<h3>Preview - ${SECTION_DISPLAY[section] || section}</h3>`;
+
+  if (inputType === 'textarea' && section === 'WRITING') {
+    items.forEach((item, idx) => {
+      const response = sectionResponses[item.itemNum - 1];
+      const hasResponse = response && response.length > 0;
+      html += '<div class="preview-slide">';
+      html += `<div class="preview-slide-header">${item.partLabel} - Question ${item.itemNum}</div>`;
+      if (item.isEssay) {
+        const group = currentGroup;
+        html += `<div class="preview-question"><strong>Topic:</strong> ${group.task2.topic}</div>`;
+      }
+      html += `<div class="preview-q-answer ${hasResponse ? 'answered' : 'unanswered'}">`;
+      html += hasResponse ? response.substring(0, 200) + (response.length > 200 ? '...' : '') : 'Not answered';
+      html += '</div></div>';
+    });
+  } else if (inputType === 'audio' && section === 'SPEAKING') {
+    items.forEach((item, idx) => {
+      const response = speakingResponses[item.itemNum - 1];
+      const hasResponse = response && response.blob;
+      html += '<div class="preview-slide">';
+      html += `<div class="preview-slide-header">${item.partLabel} - Task ${item.itemNum}</div>`;
+      html += `<div class="preview-q-answer ${hasResponse ? 'answered' : 'unanswered'}">`;
+      if (hasResponse) {
+        html += `<button class="btn-preview-playback" onclick="playSpeakingPreview(${item.itemNum - 1})">Play Recording (${response.duration}s)</button>`;
+      } else {
+        html += 'Not answered';
+      }
+      html += '</div></div>';
+    });
+  } else {
+    // MC sections
+    const saved = loadProgress();
+    items.forEach((part) => {
+      const partProgress = getPartProgress(part.key, saved);
+      html += '<div class="preview-slide">';
+      html += `<div class="preview-slide-header">${part.name}</div>`;
+      html += `<div class="preview-summary">${partProgress.answered}/${partProgress.total} answered (${partProgress.percent}%)</div>`;
+      html += '</div>';
+    });
+  }
+
+  html += '</div>';
+  html += '<div class="preview-submit-container">';
+  html += '<button id="preview-confirm-btn" class="btn-submit-preview">Confirmar</button>';
+  html += '</div>';
+
+  getElement('options-container').innerHTML = html;
+
+  const confirmBtn = getElement('preview-confirm-btn');
+  if (confirmBtn) {
+    confirmBtn.onclick = () => showResults();
+  }
+
+  updatePrevButtonVisibility();
+}
+
+// Play speaking preview audio
+function playSpeakingPreview(taskIndex) {
+  const response = speakingResponses[taskIndex];
+  if (response && response.blob) {
+    const audio = new Audio(URL.createObjectURL(response.blob));
+    audio.play();
+  }
+}
+
+// Show final results
+function showResults() {
+  getElement('quiz-view').classList.add('hidden');
+  getElement('results-container').classList.remove('hidden');
+  getElement('category-select').classList.add('hidden');
+
+  // Calculate total score
+  const totalScore = Object.values(score).reduce((a, b) => a + b, 0);
+  const totalParts = Object.values(score).length;
+  const percentage = Math.round((totalScore / totalParts) * 100);
+
+  getElement('score-display').textContent = `${percentage}% (${totalScore}/${totalParts})`;
+
+  // Render breakdown
+  let html = '';
+  const sections = ['WRITING', 'LISTENING', 'READING_AND_GRAMMAR', 'SPEAKING'];
+  sections.forEach(sec => {
+    html += '<div class="result-category">';
+    html += `<span class="result-category-name">${SECTION_DISPLAY[sec]}</span>`;
+    html += `<span class="result-category-score">${score[sec]}</span>`;
+    html += '</div>';
+  });
+  getElement('results-breakdown').innerHTML = html;
+
+  logActivity('RESULTS', `Final score: ${percentage}%`);
+
+  stopTimer();
+}
+
+// Check if first question of section
+function isFirstQuestionOfSection() {
+  if (currentSection === 'WRITING') {
+    return currentItemIndex === 0;
+  } else if (currentSection === 'SPEAKING') {
+    return currentItemIndex === 0;
+  } else {
+    return currentGroupIndex === 0;
+  }
+}
+
+// Check if last question of section
+function isLastQuestionOfSection() {
+  const sectionParts = SECTION_PARTS[currentSection];
+  if (!sectionParts) return true;
+
+  if (currentSection === 'WRITING') {
+    return currentItemIndex >= sectionParts.length - 1;
+  } else if (currentSection === 'SPEAKING') {
+    return currentItemIndex >= sectionParts.length - 1;
+  } else {
+    return currentGroupIndex >= questionGroups.length - 1;
+  }
+}
+
+// Check if last part of section
+function isLastPartOfSection() {
+  const sectionParts = SECTION_PARTS[currentSection];
+  if (!sectionParts) return true;
+
+  const currentPart = sectionParts[currentSection === 'WRITING' ? currentItemIndex : currentGroupIndex];
+  if (!currentPart) return true;
+
+  const currentPartKey = currentPart.partKey;
+  const lastPart = sectionParts[sectionParts.length - 1];
+  return currentPartKey === lastPart.partKey;
+}
+
+// Get next part key
+function getNextPartKey() {
+  const sectionParts = SECTION_PARTS[currentSection];
+  if (!sectionParts) return null;
+
+  if (currentSection === 'WRITING') {
+    return currentItemIndex < sectionParts.length - 1 ? sectionParts[currentItemIndex + 1] : null;
+  } else if (currentSection === 'SPEAKING') {
+    return currentItemIndex < sectionParts.length - 1 ? sectionParts[currentItemIndex + 1] : null;
+  } else {
+    const currentPart = sectionParts.find(p => p.key === currentPartKey);
+    if (!currentPart) return null;
+    const currentIndex = sectionParts.indexOf(currentPart);
+    return currentIndex < sectionParts.length - 1 ? sectionParts[currentIndex + 1] : null;
+  }
+}
+
+// Get previous part key
+function getPrevPartKey() {
+  const sectionParts = SECTION_PARTS[currentSection];
+  if (!sectionParts) return null;
+
+  if (currentSection === 'WRITING') {
+    return currentItemIndex > 0 ? sectionParts[currentItemIndex - 1] : null;
+  } else if (currentSection === 'SPEAKING') {
+    return currentItemIndex > 0 ? sectionParts[currentItemIndex - 1] : null;
+  } else {
+    const currentPart = sectionParts.find(p => p.key === currentPartKey);
+    if (!currentPart) return null;
+    const currentIndex = sectionParts.indexOf(currentPart);
+    return currentIndex > 0 ? sectionParts[currentIndex - 1] : null;
+  }
+}
+
+// Navigate to a specific part
+function navigateToPart(partKey) {
+  pauseTimer();
+  saveProgress();
+
+  if (currentSection === 'WRITING') {
+    beginWriting(partKey);
+  } else if (currentSection === 'SPEAKING') {
+    beginSpeaking(partKey);
+  } else {
+    beginMcPart(partKey);
+  }
+}
+
+// Stop speaking microphone
+function stopSpeakingMic() {
+  if (speakingMediaRecorder && speakingMediaRecorder.state !== 'inactive') {
+    speakingMediaRecorder.stop();
+  }
+  if (speakingStream) {
+    speakingStream.getTracks().forEach(track => track.stop());
+    speakingStream = null;
+  }
+  if (speakingAnimationId) {
+    cancelAnimationFrame(speakingAnimationId);
+    speakingAnimationId = null;
+  }
+}
