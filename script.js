@@ -800,7 +800,7 @@ function saveProgress() {
     itemIndex: currentItemIndex,
     writingResponses: sectionResponses,
     writingGroupId: currentGroup?.id || null,
-    speakingTaskIndex: speakingTaskIndex,
+    speakingtaskIndex: speakingtaskIndex,
     speakingResponses: speakingResponses.map((r) =>
       r ? { duration: r.duration, timestamp: r.timestamp } : null,
     ),
@@ -1484,7 +1484,7 @@ function renderSpeakingStep(item, partData) {
 
   const container = getElement("options-container");
   const taskIndex = item.itemNum - 1;
-  const task = partData.tasks[taskIndex];
+  const task = partData.task[taskIndex];
 
   if (!task) return;
 
@@ -1514,10 +1514,10 @@ function setupSpeakingEvents(taskIndex, timeLimit) {
   const playbackAudio = getElement("playback-audio");
 
   if (startBtn) {
-    startBtn.onclick = () => startSpeakingRecording(taskIndex, timeLimit);
+    startBtn.onclick = () => startSpeakingrecording(taskIndex, timeLimit);
   }
   if (stopBtn) {
-    stopBtn.onclick = () => stopSpeakingRecording(taskIndex);
+    stopBtn.onclick = () => stopSpeakingrecording(taskIndex);
   }
 
   // Load saved recording if exists
@@ -1533,7 +1533,7 @@ function setupSpeakingEvents(taskIndex, timeLimit) {
         playbackAudio.classList.remove("hidden");
       }
       if (statusEl) {
-        statusEl.textContent = "Recording saved";
+        statusEl.textContent = "recording saved";
         statusEl.classList.remove("hidden");
       }
     }
@@ -1541,7 +1541,7 @@ function setupSpeakingEvents(taskIndex, timeLimit) {
 }
 
 // Start Speaking recording
-async function startSpeakingRecording(taskIndex, timeLimit) {
+async function startSpeakingrecording(taskIndex, timeLimit) {
   const startBtn = getElement("start-recording-btn");
   const stopBtn = getElement("stop-recording-btn");
   const statusEl = getElement("recording-status");
@@ -1569,7 +1569,7 @@ async function startSpeakingRecording(taskIndex, timeLimit) {
       }
 
       if (statusEl) {
-        statusEl.textContent = "Recording saved";
+        statusEl.textContent = "recording saved";
         statusEl.classList.remove("hidden");
       }
 
@@ -1587,7 +1587,7 @@ async function startSpeakingRecording(taskIndex, timeLimit) {
     if (startBtn) startBtn.classList.add("hidden");
     if (stopBtn) stopBtn.classList.remove("hidden");
     if (statusEl) {
-      statusEl.textContent = "Recording...";
+      statusEl.textContent = "recording...";
       statusEl.classList.remove("hidden");
     }
   } catch (error) {
@@ -1597,7 +1597,7 @@ async function startSpeakingRecording(taskIndex, timeLimit) {
 }
 
 // Stop Speaking recording
-function stopSpeakingRecording(taskIndex) {
+function stopSpeakingrecording(taskIndex) {
   if (speakingMediaRecorder && speakingMediaRecorder.state !== "inactive") {
     speakingMediaRecorder.stop();
     if (speakingStream) {
@@ -2403,7 +2403,7 @@ function updatePrevButtonVisibility() {
 // Variables para la sección de Speaking
 let speakingPart = null;
 // Índice de la tarea actual
-let speakingTaskIndex = 0;
+let speakingtaskIndex = 0;
 // Respuestas de audio
 let speakingResponses = [];
 // Tiempo restante de Speaking
@@ -2536,7 +2536,7 @@ function beginSpeaking(partKey, saved = null) {
 
   speakingPart = partData;
   const hasSavedProgress = saved && saved.currentPartKey === partKey;
-  speakingTaskIndex = hasSavedProgress ? saved.speakingTaskIndex || 0 : 0;
+  speakingtaskIndex = hasSavedProgress ? saved.speakingtaskIndex || 0 : 0;
   speakingResponses = hasSavedProgress ? saved.speakingResponses || [] : [];
 
   currentPartKey = partKey;
@@ -2641,7 +2641,7 @@ function renderPreview(section, items, inputType) {
       html += `<div class="preview-slide-header">${item.partLabel} - Task ${item.itemNum}</div>`;
       html += `<div class="preview-q-answer ${hasResponse ? "answered" : "unanswered"}">`;
       if (hasResponse) {
-        html += `<button class="btn-preview-playback" onclick="playSpeakingPreview(${item.itemNum - 1})">Play Recording (${response.duration}s)</button>`;
+        html += `<button class="btn-preview-playback" onclick="playSpeakingPreview(${item.itemNum - 1})">Play recording (${response.duration}s)</button>`;
       } else {
         html += "Not answered";
       }
@@ -2690,21 +2690,50 @@ function showResults() {
   getElement("results-container").classList.remove("hidden");
   getElement("category-select").classList.add("hidden");
 
-  // Calculate total score
+  // Calculate total score (total correct answers / total questions)
   const totalScore = Object.values(score).reduce((a, b) => a + b, 0);
-  const totalParts = Object.values(score).length;
-  const percentage = Math.round((totalScore / totalParts) * 100);
+
+  // Calculate totalParts based on section types (MC: questions, Writing: 4 parts, Speaking: tasks)
+  let totalParts = 0;
+  if (quizData.LISTENING) {
+    totalParts += quizData.LISTENING.parts
+      ? quizData.LISTENING.parts.reduce((sum, p) => sum + (p.questions ? p.questions.length : 0), 0)
+      : 0;
+  }
+  if (quizData.READING_AND_GRAMMAR) {
+    totalParts += quizData.READING_AND_GRAMMAR.parts
+      ? quizData.READING_AND_GRAMMAR.parts.reduce((sum, p) => sum + (p.questions ? p.questions.length : 0), 0)
+      : 0;
+  }
+  totalParts += 4; // Writing: 3 Task 1 + 1 Task 2
+  totalParts += 5; // Speaking: 3 Part 1 + 2 Part 2
+
+  const percentage = totalParts > 0 ? Math.round((totalScore / totalParts) * 100) : 0;
 
   getElement("score-display").textContent =
     `${percentage}% (${totalScore}/${totalParts})`;
 
-  // Render breakdown
+  // Render breakdown with section-specific display
   let html = "";
   const sections = ["WRITING", "LISTENING", "READING_AND_GRAMMAR", "SPEAKING"];
   sections.forEach((sec) => {
     html += '<div class="result-category">';
     html += `<span class="result-category-name">${SECTION_DISPLAY[sec]}</span>`;
-    html += `<span class="result-category-score">${score[sec]}</span>`;
+
+    // Section-specific score display
+    if (sec === "WRITING") {
+      const task1Answered = (sectionResponses[0]?.length > 0 ? 1 : 0) +
+        (sectionResponses[1]?.length > 0 ? 1 : 0) +
+        (sectionResponses[2]?.length > 0 ? 1 : 0);
+      const task2Answered = sectionResponses[3]?.length > 0 ? 1 : 0;
+      html += `<span class="result-category-score">${task1Answered}/3 • ${task2Answered}/1</span>`;
+    } else if (sec === "SPEAKING") {
+      const completed = speakingResponses.filter(r => r !== null && r !== undefined).length;
+      html += `<span class="result-category-score">${completed}/5</span>`;
+    } else {
+      html += `<span class="result-category-score">${score[sec]}</span>`;
+    }
+
     html += "</div>";
   });
   getElement("results-breakdown").innerHTML = html;
@@ -2995,3 +3024,4 @@ function setupEventListeners() {
     window.location.href = `mailto:${currentUser?.email || ""}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   });
 }
+
