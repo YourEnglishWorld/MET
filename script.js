@@ -1156,8 +1156,10 @@ function renderCategorySelect() {
     const partsContainer = document.createElement("div");
     partsContainer.className = "home-card-parts";
 
-    sec.parts.forEach((part) => {
-      const config = SECTION_CONFIG[part.key];
+    // Get unique parts for Writing and Speaking (group by partKey)
+    const uniqueParts = getUniquePartsForSection(sec.key, sec.parts);
+
+    uniqueParts.forEach((part) => {
       const hasContent = hasSectionContent(part.key);
       const saved = loadProgress();
       const partProgress = getPartProgress(part.key, saved);
@@ -1189,6 +1191,22 @@ function renderCategorySelect() {
     card.appendChild(partsContainer);
     container.appendChild(card);
   });
+}
+
+// Get unique parts for a section (groups Writing tasks and Speaking parts)
+function getUniquePartsForSection(sectionKey, parts) {
+  if (sectionKey === "WRITING" || sectionKey === "SPEAKING") {
+    const seen = new Set();
+    const unique = [];
+    parts.forEach((part) => {
+      if (!seen.has(part.partKey)) {
+        seen.add(part.partKey);
+        unique.push(part);
+      }
+    });
+    return unique;
+  }
+  return parts;
 }
 
 // Revisa si una sección ya tiene contenido disponible
