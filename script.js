@@ -1195,11 +1195,7 @@ function renderCategorySelect() {
 function hasSectionContent(partKey) {
   const section = getSectionKey(partKey);
   if (section === "WRITING")
-    return (
-      quizData.WRITING &&
-      quizData.WRITING.groups &&
-      quizData.WRITING.groups.length > 0
-    );
+    return quizData.WRITING && Object.keys(quizData.WRITING).length > 0;
   if (section === "LISTENING")
     return (
       quizData.LISTENING &&
@@ -2910,9 +2906,10 @@ function stopSpeakingMic() {
 
 // Setup all navigation event listeners
 function setupEventListeners() {
-  // Home button
+  // Home button - render home screen directly
   document.getElementById("home-btn")?.addEventListener("click", () => {
     window.location.hash = "/";
+    renderCategorySelect();
   });
 
   // Next button
