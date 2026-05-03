@@ -549,6 +549,29 @@ window.addEventListener("hashchange", loadFromHash);
 // Inicializar la página al cargar
 window.addEventListener("load", async () => {
   await loadAllData();
+
+  // Load saved user and update display
+  loadUser();
+  updateUserDisplay();
+
+  // Load saved theme
+  const savedTheme = localStorage.getItem("metQuizTheme") || "light";
+  document.documentElement.setAttribute("data-theme", savedTheme);
+
+  // Setup theme toggle
+  const themeSwitch = document.getElementById("theme-switch");
+  if (themeSwitch) {
+    themeSwitch.checked = savedTheme === "dark";
+    themeSwitch.addEventListener("change", function () {
+      const theme = this.checked ? "dark" : "light";
+      document.documentElement.setAttribute("data-theme", theme);
+      localStorage.setItem("metQuizTheme", theme);
+    });
+  }
+
+  // Setup navigation event listeners
+  setupEventListeners();
+
   loadFromHash();
 });
 
@@ -861,10 +884,6 @@ function getElement(id) {
 // Guarda los datos del usuario en el navegador
 function saveUser(user) {
   localStorage.setItem("metQuizUser", JSON.stringify(user));
-  localStorage.setItem(
-    "metQuizTheme",
-    document.documentElement.getAttribute("data-theme") || "light",
-  );
   currentUser = user;
   updateUserDisplay();
 }
@@ -2824,4 +2843,155 @@ function stopSpeakingMic() {
     cancelAnimationFrame(speakingAnimationId);
     speakingAnimationId = null;
   }
+}
+
+// Setup all navigation event listeners
+function setupEventListeners() {
+  // Home button
+  document.getElementById("home-btn")?.addEventListener("click", () => {
+    window.location.hash = "/";
+  });
+
+  // Next button
+  document.getElementById("next-btn")?.addEventListener("click", () => {
+    if (sectionPreviewMode) return;
+    if (currentSection === "WRITING" || currentSection === "SPEAKING") {
+      navigateToNextPart();
+    } else {
+      navigateToNextGroup();
+    }
+  });
+
+  // Previous button
+  document.getElementById("prev-btn")?.addEventListener("click", () => {
+    navigateToPrevGroup();
+  });
+
+  // Skip button
+  document.getElementById("skip-btn")?.addEventListener("click", () => {
+    navigateToNextPart();
+  });
+
+  // Check button (MC groups)
+  document.getElementById("check-btn")?.addEventListener("click", () => {
+    checkCurrentGroup();
+  });
+
+  // Submit/Confirm button (preview)
+  document.getElementById("submit-section-btn")?.addEventListener("click", () => {
+    showResults();
+  });
+
+  // Reset all progress button (home)
+  document.getElementById("reset-all-btn")?.addEventListener("click", () => {
+    resetAllProgress();
+  });
+
+  // Reset section progress button (quiz)
+  document.getElementById("reset-btn")?.addEventListener("click", () => {
+    resetSectionProgress();
+  });
+
+  // Help buttons
+  document.getElementById("help-btn-home")?.addEventListener("click", () => {
+    showHelpModal();
+  });
+  document.getElementById("help-btn-quiz")?.addEventListener("click", () => {
+    showHelpModal();
+  });
+
+  // Registration form
+  document.getElementById("registration-form")?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const name = document.getElementById("reg-name").value.trim();
+    const emailUser = document.getElementById("reg-email-username").value.trim();
+    const emailDomain = document.getElementById("reg-email-domain").value.trim();
+    const email = `${emailUser}@${emailDomain}`;
+    if (!isValidName(name) || !email.includes("@")) {
+      alert("Please enter a valid name and email.");
+      return;
+    }
+    const user = { name, email };
+    saveUser(user);
+    hideRegistrationModal();
+    if (pendingSection) {
+      beginQuiz(pendingSection);
+      pendingSection = null;
+    }
+  });
+
+  // Registration cancel
+  document.getElementById("reg-cancel")?.addEventListener("click", () => {
+    hideRegistrationModal();
+    pendingSection = null;
+  });
+
+  // Change user form
+  document.getElementById("change-user-form")?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const name = document.getElementById("change-name").value.trim();
+    const emailUser = document.getElementById("change-email-username").value.trim();
+    const emailDomain = document.getElementById("change-email-domain").value.trim();
+    const email = `${emailUser}@${emailDomain}`;
+    if (!isValidName(name) || !email.includes("@")) {
+      alert("Please enter a valid name and email.");
+      return;
+    }
+    const user = { name, email };
+    saveUser(user);
+    hideChangeUserModal();
+  });
+
+  // User name click to change user
+  document.getElementById("user-name")?.addEventListener("click", () => {
+    showChangeUserModal();
+  });
+
+  // Help form
+  document.getElementById("help-form")?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const text = document.getElementById("help-text").value.trim();
+    if (!text) return;
+    logActivity("HELP", text.substring(0, 100));
+    alert("Thank you! We will respond soon.");
+    hideHelpModal();
+  });
+
+  // Help cancel
+  document.getElementById("help-cancel")?.addEventListener("click", () => {
+    hideHelpModal();
+  });
+
+  // Time modal buttons
+  document.getElementById("time-home-btn")?.addEventListener("click", () => {
+    hideTimeModal();
+    window.location.hash = "/";
+  });
+  document.getElementById("time-preview-btn")?.addEventListener("click", () => {
+    hideTimeModal();
+    goToPreview();
+  });
+
+  // Back modal buttons
+  document.getElementById("back-home-btn")?.addEventListener("click", () => {
+    document.getElementById("back-modal").classList.add("hidden");
+    window.location.hash = "/";
+  });
+  document.getElementById("back-prev-btn")?.addEventListener("click", () => {
+    document.getElementById("back-modal").classList.add("hidden");
+    navigateToPrevGroup();
+  });
+  document.getElementById("back-cancel")?.addEventListener("click", () => {
+    document.getElementById("back-modal").classList.add("hidden");
+  });
+
+  // Results buttons
+  document.getElementById("results-home-btn")?.addEventListener("click", () => {
+    window.location.hash = "/";
+  });
+  document.getElementById("email-btn")?.addEventListener("click", () => {
+    const subject = "MET Quiz Results";
+    const body = `Results: ${document.getElementById("score-display")?.textContent || ""}`;
+    window.location.href = `mailto:${currentUser?.email || ""}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  });
 }
