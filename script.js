@@ -1194,7 +1194,11 @@ function renderCategorySelect() {
 function hasSectionContent(partKey) {
   const section = getSectionKey(partKey);
   if (section === "WRITING")
-    return quizData.WRITING && Object.keys(quizData.WRITING).length > 0;
+    return (
+      quizData.WRITING &&
+      quizData.WRITING.groups &&
+      quizData.WRITING.groups.length > 0
+    );
   if (section === "LISTENING")
     return (
       quizData.LISTENING &&
@@ -2437,16 +2441,6 @@ function clearSpeakingDB() {
     });
   });
 }
-
-// Pasos del Speaking (qué tarea se está haciendo)
-const SPEAKING_STEPS = {
-  TASK_1: 0,
-  TASK_2: 1,
-  TASK_3: 2,
-  TASK_4: 3,
-  TASK_5: 4,
-  PREVIEW: 5,
-};
 
 // Inicia la sección de Speaking
 function beginSpeaking(partKey, saved = null) {
