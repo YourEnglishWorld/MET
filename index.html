@@ -78,16 +78,12 @@
       <p class="modal-subtitle">Ingresa tus datos para continuar</p>
       <form id="registration-form">
         <div class="form-group">
-          <label for="reg-name">Nombre</label> <!-- Campo para el nombre -->
-          <input type="text" id="reg-name" required placeholder="Tu nombre">
+          <label for="nombre">Nombre</label>
+          <input type="text" id="nombre" required placeholder="Tu nombre">
         </div>
         <div class="form-group">
-          <label for="reg-email-username">Correo</label> <!-- Campo para el correo dividido en usuario y dominio -->
-          <div class="email-input-group">
-            <input type="text" id="reg-email-username" required placeholder="tu nombre de usuario" list="email-username-suggestions">
-            <span class="email-at">@</span> <!-- Símbolo arroba -->
-            <input type="text" id="reg-email-domain" required list="email-domains" placeholder="gmail.com">
-          </div>
+          <label for="email">Correo</label>
+          <input type="email" id="email" required placeholder="tu@correo.com" list="email-domains">
         </div>
         <div class="modal-buttons">
           <!-- Botón para no registrar y salir -->
@@ -110,7 +106,7 @@
       <form id="help-form">
         <div class="form-group">
           <!-- Caja de texto para escribir la consulta -->
-          <textarea id="help-text" rows="5" placeholder="Escribe tu consulta..."></textarea>
+          <textarea id="mensajeAyuda" rows="5" placeholder="Escribe tu consulta..."></textarea>
         </div>
         <div class="modal-buttons">
           <!-- Botón para no enviar nada -->

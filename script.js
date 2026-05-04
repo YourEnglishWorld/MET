@@ -950,16 +950,16 @@ function updateUserDisplay() {
   }
 }
 
-async function logActivity(action, detail = "") {
+async function logActivity(accion, detalle = "") {
   if (!currentUser) return;
 
   const data = {
     timestamp: new Date().toISOString(),
-    name: currentUser.name,
+    nombre: currentUser.name,
     email: currentUser.email,
-    category: currentSection || "",
-    action: action,
-    detail: detail,
+    categoria: currentSection || "",
+    accion: accion,
+    detalle: detalle,
   };
 
   try {
@@ -970,7 +970,6 @@ async function logActivity(action, detail = "") {
     ) {
       await fetch(APPS_SCRIPT_URL, {
         method: "POST",
-        mode: "no-cors",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
@@ -985,8 +984,8 @@ function showRegistrationModal() {
   const modal = getElement("registration-modal");
   if (!modal) return;
   modal.classList.remove("hidden");
-  const nameInput = getElement("reg-name");
-  const emailInput = getElement("reg-email");
+  const nameInput = getElement("nombre");
+  const emailInput = getElement("email");
   if (nameInput) {
     nameInput.value = "";
     nameInput.focus();
@@ -1015,7 +1014,8 @@ function hideHelpModal() {
 function showChangeUserModal() {
   getElement("change-user-modal").classList.remove("hidden");
   getElement("change-name").value = currentUser?.name || "";
-  getElement("change-email").value = currentUser?.email || "";
+  getElement("change-email-username").value = currentUser?.email?.split("@")[0] || "";
+  getElement("change-email-domain").value = currentUser?.email?.split("@")[1] || "gmail.com";
   getElement("change-name").focus();
 }
 
@@ -2961,33 +2961,26 @@ function setupEventListeners() {
     .getElementById("registration-form")
     ?.addEventListener("submit", (e) => {
       e.preventDefault();
-      const name = document.getElementById("reg-name").value.trim();
-      const emailUser = document
-        .getElementById("reg-email-username")
-        .value.trim();
-      const emailDomain = document
-        .getElementById("reg-email-domain")
-        .value.trim();
-      const email = `${emailUser}@${emailDomain}`;
-      if (!isValidName(name) || !email.includes("@")) {
+      const nombre = document.getElementById("nombre").value.trim();
+      const email = document.getElementById("email").value.trim();
+      if (!isValidName(nombre) || !email.includes("@")) {
         alert("Please enter a valid name and email.");
         return;
       }
-      const user = { name, email };
+      const user = { name: nombre, email };
       saveUser(user);
 
       // Send registration data to Google Sheets
       if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== "https://script.google.com/macros/s/AKfycbyS6XgNfgdYCYT_Ap4s5YzNEls6Bv8bXG9qU88x8MaIFP2GXCm8Gg6YwKCFSam3Oo_t/exec") {
         fetch(APPS_SCRIPT_URL, {
           method: "POST",
-          mode: "no-cors",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            name: name,
+            nombre: nombre,
             email: email,
-            category: "",
-            action: "REGISTRO",
-            detail: "User registered",
+            categoria: "",
+            accion: "REGISTRO",
+            detalle: "User registered",
           }),
         }).catch(() => null);
       }
@@ -3024,6 +3017,22 @@ function setupEventListeners() {
       }
       const user = { name, email };
       saveUser(user);
+
+      // Send updated user data to Google Sheets
+      if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== "https://script.google.com/macros/s/AKfycbyS6XgNfgdYCYT_Ap4s5YzNEls6Bv8bXG9qU88x8MaIFP2GXCm8Gg6YwKCFSam3Oo_t/exec") {
+        fetch(APPS_SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            nombre: name,
+            email: email,
+            categoria: "",
+            accion: "CAMBIO_USUARIO",
+            detalle: "User changed",
+          }),
+        }).catch(() => null);
+      }
+
       hideChangeUserModal();
     });
 
@@ -3035,11 +3044,10 @@ function setupEventListeners() {
   // Help form
   document.getElementById("help-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
-    const text = document.getElementById("help-text").value.trim();
-    if (!text) return;
+    const mensaje = document.getElementById("mensajeAyuda").value.trim();
+    if (!mensaje) return;
 
-    const detail = text.substring(0, 500);
-    logActivity("HELP", detail);
+    const detalle = mensaje.substring(0, 500);
 
     // Send consultation to Google Sheets
     if (
@@ -3048,14 +3056,13 @@ function setupEventListeners() {
     ) {
       fetch(APPS_SCRIPT_URL, {
         method: "POST",
-        mode: "no-cors",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: currentUser?.name || "",
+          nombre: currentUser?.name || "",
           email: currentUser?.email || "",
-          category: currentSection || "",
-          action: "CONSULTA",
-          detail: detail,
+          categoria: currentSection || "",
+          accion: "CONSULTA",
+          detalle: detalle,
         }),
       }).catch(() => null);
     }
