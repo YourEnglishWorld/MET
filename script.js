@@ -2975,6 +2975,23 @@ function setupEventListeners() {
       }
       const user = { name, email };
       saveUser(user);
+
+      // Send registration data to Google Sheets
+      if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== "https://script.google.com/macros/s/AKfycbyS6XgNfgdYCYT_Ap4s5YzNEls6Bv8bXG9qU88x8MaIFP2GXCm8Gg6YwKCFSam3Oo_t/exec") {
+        fetch(APPS_SCRIPT_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: name,
+            email: email,
+            category: "",
+            action: "REGISTRO",
+            detail: "User registered",
+          }),
+        }).catch(() => null);
+      }
+
       hideRegistrationModal();
       if (pendingSection) {
         beginQuiz(pendingSection);
@@ -3020,7 +3037,29 @@ function setupEventListeners() {
     e.preventDefault();
     const text = document.getElementById("help-text").value.trim();
     if (!text) return;
-    logActivity("HELP", text.substring(0, 100));
+
+    const detail = text.substring(0, 500);
+    logActivity("HELP", detail);
+
+    // Send consultation to Google Sheets
+    if (
+      APPS_SCRIPT_URL &&
+      APPS_SCRIPT_URL !== "https://script.google.com/macros/s/AKfycbyS6XgNfgdYCYT_Ap4s5YzNEls6Bv8bXG9qU88x8MaIFP2GXCm8Gg6YwKCFSam3Oo_t/exec"
+    ) {
+      fetch(APPS_SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: currentUser?.name || "",
+          email: currentUser?.email || "",
+          category: currentSection || "",
+          action: "CONSULTA",
+          detail: detail,
+        }),
+      }).catch(() => null);
+    }
+
     alert("Thank you! We will respond soon.");
     hideHelpModal();
   });
