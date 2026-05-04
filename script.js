@@ -18,6 +18,7 @@ const SECTION_CONFIG = {
   SPEAKING: { time: 10 * 60, parts: 2, items: 5, name: "speaking" },
   // Configuración de cada parte individual (Task 1, Task 2, Part 1, etc.)
   WRITING_TASK1: {
+    key: "WRITING_TASK1",
     time: 30 * 60,
     tasks: 1,
     items: 3,
@@ -26,6 +27,7 @@ const SECTION_CONFIG = {
     partId: 1,
   },
   WRITING_TASK2: {
+    key: "WRITING_TASK2",
     time: 45 * 60,
     tasks: 1,
     items: 1,
@@ -34,6 +36,7 @@ const SECTION_CONFIG = {
     partId: 2,
   },
   LISTENING_P1: {
+    key: "LISTENING_P1",
     time: 35 * 60,
     parts: 3,
     items: 19,
@@ -42,6 +45,7 @@ const SECTION_CONFIG = {
     partId: 1,
   },
   LISTENING_P2: {
+    key: "LISTENING_P2",
     time: 35 * 60,
     parts: 3,
     items: 14,
@@ -50,6 +54,7 @@ const SECTION_CONFIG = {
     partId: 2,
   },
   LISTENING_P3: {
+    key: "LISTENING_P3",
     time: 35 * 60,
     parts: 3,
     items: 17,
@@ -58,6 +63,7 @@ const SECTION_CONFIG = {
     partId: 3,
   },
   READING_P1: {
+    key: "READING_P1",
     time: 65 * 60,
     parts: 3,
     items: 20,
@@ -66,6 +72,7 @@ const SECTION_CONFIG = {
     partId: 1,
   },
   READING_P2: {
+    key: "READING_P2",
     time: 65 * 60,
     parts: 3,
     items: 11,
@@ -74,6 +81,7 @@ const SECTION_CONFIG = {
     partId: 2,
   },
   READING_P3: {
+    key: "READING_P3",
     time: 65 * 60,
     parts: 3,
     items: 20,
@@ -82,6 +90,7 @@ const SECTION_CONFIG = {
     partId: 3,
   },
   SPEAKING_P1: {
+    key: "SPEAKING_P1",
     time: 10 * 60,
     parts: 2,
     items: 3,
@@ -90,6 +99,7 @@ const SECTION_CONFIG = {
     partId: 1,
   },
   SPEAKING_P2: {
+    key: "SPEAKING_P2",
     time: 10 * 60,
     parts: 2,
     items: 2,
@@ -123,6 +133,15 @@ function getSectionKey(partKey) {
   if (partKey.startsWith("READING")) return "READING_AND_GRAMMAR";
   if (partKey.startsWith("SPEAKING")) return "SPEAKING";
   return null;
+}
+
+// Get the type of section: "textarea", "audio", or "mc"
+function getSectionType(partKey) {
+  const section = getSectionKey(partKey);
+  if (!section) return null;
+  if (section === "WRITING") return "textarea";
+  if (section === "SPEAKING") return "audio";
+  return "mc";
 }
 
 // Convierte el nombre de la URL (hash) a una clave interna
@@ -236,15 +255,15 @@ const SECTION_PARTS = {
   ],
   // Listening tiene 3 partes
   LISTENING: [
-    { key: "LISTENING_P1", name: "Part 1", time: 35 * 60 },
-    { key: "LISTENING_P2", name: "Part 2", time: 35 * 60 },
-    { key: "LISTENING_P3", name: "Part 3", time: 35 * 60 },
+    { key: "LISTENING_P1", name: "Part 1", time: 35 * 60, partId: 1 },
+    { key: "LISTENING_P2", name: "Part 2", time: 35 * 60, partId: 2 },
+    { key: "LISTENING_P3", name: "Part 3", time: 35 * 60, partId: 3 },
   ],
   // Reading & Grammar tiene 3 partes
   READING_AND_GRAMMAR: [
-    { key: "READING_P1", name: "Part 1", time: 65 * 60 },
-    { key: "READING_P2", name: "Part 2", time: 65 * 60 },
-    { key: "READING_P3", name: "Part 3", time: 65 * 60 },
+    { key: "READING_P1", name: "Part 1", time: 65 * 60, partId: 1 },
+    { key: "READING_P2", name: "Part 2", time: 65 * 60, partId: 2 },
+    { key: "READING_P3", name: "Part 3", time: 65 * 60, partId: 3 },
   ],
   // Speaking tiene 2 partes, 5 tareas total (3 en Part 1, 2 en Part 2)
   SPEAKING: [
@@ -493,11 +512,12 @@ function loadFromHash() {
   // Universal logic: handle navigation based on SECTION_PARTS
   const sectionKey = getSectionKey(section);
   const sectionParts = SECTION_PARTS[sectionKey];
+  const sectionType = getSectionType(section);
   if (sectionParts && sectionKey) {
     if (qStart !== null) {
       // Find the item in SECTION_PARTS that matches this question number
       const targetItem = sectionParts.find((item) => {
-        if (item.inputType === "textarea" || item.inputType === "audio") {
+        if (sectionType === "textarea" || sectionType === "audio") {
           // For Writing/Speaking: qStart corresponds to item number
           return qStart === item.itemNum;
         }
@@ -1002,9 +1022,10 @@ function updateSectionProgress() {
   getElement("category-badge").textContent = getSectionBadge(currentPartKey);
 
   const sectionParts = SECTION_PARTS[currentSection];
+  const sectionType = getSectionType(currentPartKey);
 
-  // For sections with inputType items (WRITING, SPEAKING)
-  if (sectionParts && sectionParts[0]?.inputType) {
+  // For sections with textarea or audio inputType (WRITING, SPEAKING)
+  if (sectionType === "textarea" || sectionType === "audio") {
     // Find current item index in SECTION_PARTS
     const currentItemIndex = sectionParts.findIndex((item) => {
       return item.partKey === currentPartKey;
@@ -1190,24 +1211,25 @@ function renderCategorySelect() {
   });
 }
 
-// Revisa si una sección ya tiene contenido disponible (validación diferenciada)
+// Revisa si una sección ya tiene contenido disponible (validación por tipo)
 function hasSectionContent(partKey) {
   const section = getSectionKey(partKey);
+  const sectionType = getSectionType(partKey);
   const sectionData = quizData[section];
 
   if (!sectionData) return false;
 
-  // Writing: validate groups array (has task1 + task2)
-  if (section === "WRITING") {
+  // Textarea (Writing): validate groups array (has task1 + task2)
+  if (sectionType === "textarea") {
     return sectionData.groups && sectionData.groups.length > 0;
   }
 
-  // Speaking: validate parts array (has tasks)
-  if (section === "SPEAKING") {
+  // Audio (Speaking): validate parts array (has tasks)
+  if (sectionType === "audio") {
     return sectionData.parts && sectionData.parts.length > 0;
   }
 
-  // LISTENING and READING_AND_GRAMMAR: validate parts array
+  // MC (Listening, Reading & Grammar): validate parts array
   return sectionData.parts && sectionData.parts.length > 0;
 }
 
@@ -1216,6 +1238,7 @@ function getPartProgress(partKey, saved) {
   if (!saved) return { answered: 0, total: 0, percent: 0 };
 
   const section = getSectionKey(partKey);
+  const sectionType = getSectionType(partKey);
   const config = SECTION_CONFIG[partKey];
   const sectionParts = SECTION_PARTS[section];
 
@@ -1224,16 +1247,16 @@ function getPartProgress(partKey, saved) {
   // Find items for this partKey in SECTION_PARTS
   const itemsInPart = sectionParts.filter((item) => item.partKey === partKey);
 
-  // If items have inputType (Writing/Speaking), use response-based counting
-  if (itemsInPart.length > 0) {
+  // If section type is textarea or audio (Writing/Speaking), use response-based counting
+  if (sectionType === "textarea" || sectionType === "audio") {
     const total = itemsInPart.length;
 
     // Get responses from the correct source (sectionResponses for Writing, speakingResponses for Speaking)
     let responses = [];
-    if (section === "WRITING") {
+    if (sectionType === "textarea") {
       // Writing uses sectionResponses (textarea responses)
       responses = saved.writingResponses || sectionResponses || [];
-    } else if (section === "SPEAKING") {
+    } else if (sectionType === "audio") {
       // Speaking uses speakingResponses (audio responses)
       responses = saved.speakingResponses || speakingResponses || [];
     }
@@ -1309,6 +1332,16 @@ function beginQuiz(section) {
   // Universal section initialization
   const sectionParts = SECTION_PARTS[currentSection];
   const firstPart = sectionParts && sectionParts[0];
+  const sectionType = getSectionType(section);
+
+  // Validate content exists before proceeding
+  if (!hasSectionContent(section)) {
+    alert(
+      `La sección de ${SECTION_DISPLAY[currentSection]} aún no tiene contenido.`,
+    );
+    return;
+  }
+
   const partKey = section.startsWith(currentSection)
     ? section
     : firstPart
@@ -1316,14 +1349,14 @@ function beginQuiz(section) {
       : null;
 
   if (!partKey) {
-    alert("Esta sección aún no tiene contenido.");
+    alert("Error: No se pudo determinar la parte inicial.");
     return;
   }
 
   // Determine if this section uses inputType (Writing/Speaking) or MC
-  if (firstPart?.inputType === "textarea") {
+  if (sectionType === "textarea") {
     beginWriting(partKey, saved);
-  } else if (firstPart?.inputType === "audio") {
+  } else if (sectionType === "audio") {
     beginSpeaking(partKey, saved);
   } else {
     beginMcPart(partKey, saved);
@@ -1334,10 +1367,9 @@ function beginQuiz(section) {
 function beginWriting(partKey, saved) {
   const sectionData = quizData[currentSection];
 
+  // Validation already done in beginQuiz(), just check for safety
   if (!sectionData || !sectionData.groups || sectionData.groups.length === 0) {
-    alert(
-      `La sección de ${SECTION_DISPLAY[currentSection]} aún no tiene contenido.`,
-    );
+    console.error("Writing section has no content");
     return;
   }
 
@@ -2156,9 +2188,9 @@ function getNextPartName() {
   const sectionParts = SECTION_PARTS[currentSection];
   if (!sectionParts) return null;
 
-  const hasInputType = sectionParts[0]?.inputType;
+  const sectionType = getSectionType(currentPartKey);
 
-  if (hasInputType) {
+  if (sectionType === "textarea" || sectionType === "audio") {
     // For Writing/Speaking (uses currentItemIndex)
     if (currentItemIndex < sectionParts.length - 1) {
       return sectionParts[currentItemIndex + 1].partLabel;
