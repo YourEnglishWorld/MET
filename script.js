@@ -773,7 +773,7 @@ const letters = ["A", "B", "C", "D"];
 
 // URL para enviar datos a Google Sheets (En caso de actualizar, está en: línea 523, 709 y 740 y en SETUP.md)
 const APPS_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbyS6XgNfgdYCYT_Ap4s5YzNEls6Bv8bXG9qU88x8MaIFP2GXCm8Gg6YwKCFSam3Oo_t/exec";
+  "https://script.google.com/macros/s/AKfycbzrECTYkZ0hmA2r30G1YVWbQHVfnks6Q-3jBrwfAk0OQpHK_TQuLL4mxKy6Kkw5ZSDq/exec";
 
 // Límite de caracteres para Task 1
 const TASK1_CHAR_LIMIT = 750;
@@ -966,7 +966,7 @@ async function logActivity(accion, detalle = "") {
     if (
       APPS_SCRIPT_URL &&
       APPS_SCRIPT_URL !==
-        "https://script.google.com/macros/s/AKfycbyS6XgNfgdYCYT_Ap4s5YzNEls6Bv8bXG9qU88x8MaIFP2GXCm8Gg6YwKCFSam3Oo_t/exec"
+        "https://script.google.com/macros/s/AKfycbzrECTYkZ0hmA2r30G1YVWbQHVfnks6Q-3jBrwfAk0OQpHK_TQuLL4mxKy6Kkw5ZSDq/exec"
     ) {
       await fetch(APPS_SCRIPT_URL, {
         method: "POST",
@@ -2971,7 +2971,7 @@ function setupEventListeners() {
       saveUser(user);
 
       // Send registration data to Google Sheets
-      if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== "https://script.google.com/macros/s/AKfycbyS6XgNfgdYCYT_Ap4s5YzNEls6Bv8bXG9qU88x8MaIFP2GXCm8Gg6YwKCFSam3Oo_t/exec") {
+      if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== "https://script.google.com/macros/s/AKfycbzrECTYkZ0hmA2r30G1YVWbQHVfnks6Q-3jBrwfAk0OQpHK_TQuLL4mxKy6Kkw5ZSDq/exec") {
         fetch(APPS_SCRIPT_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -3019,7 +3019,7 @@ function setupEventListeners() {
       saveUser(user);
 
       // Send updated user data to Google Sheets
-      if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== "https://script.google.com/macros/s/AKfycbyS6XgNfgdYCYT_Ap4s5YzNEls6Bv8bXG9qU88x8MaIFP2GXCm8Gg6YwKCFSam3Oo_t/exec") {
+      if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== "https://script.google.com/macros/s/AKfycbzrECTYkZ0hmA2r30G1YVWbQHVfnks6Q-3jBrwfAk0OQpHK_TQuLL4mxKy6Kkw5ZSDq/exec") {
         fetch(APPS_SCRIPT_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -3052,7 +3052,7 @@ function setupEventListeners() {
     // Send consultation to Google Sheets
     if (
       APPS_SCRIPT_URL &&
-      APPS_SCRIPT_URL !== "https://script.google.com/macros/s/AKfycbyS6XgNfgdYCYT_Ap4s5YzNEls6Bv8bXG9qU88x8MaIFP2GXCm8Gg6YwKCFSam3Oo_t/exec"
+      APPS_SCRIPT_URL !== "https://script.google.com/macros/s/AKfycbzrECTYkZ0hmA2r30G1YVWbQHVfnks6Q-3jBrwfAk0OQpHK_TQuLL4mxKy6Kkw5ZSDq/exec"
     ) {
       fetch(APPS_SCRIPT_URL, {
         method: "POST",
