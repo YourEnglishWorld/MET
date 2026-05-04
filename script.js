@@ -1194,11 +1194,7 @@ function renderCategorySelect() {
 function hasSectionContent(partKey) {
   const section = getSectionKey(partKey);
   if (section === "WRITING")
-    return (
-      quizData.WRITING &&
-      quizData.WRITING.groups &&
-      quizData.WRITING.groups.length > 0
-    );
+    return quizData.WRITING && Object.keys(quizData.WRITING).length > 0;
   if (section === "LISTENING")
     return (
       quizData.LISTENING &&
@@ -1244,6 +1240,18 @@ function getPartProgress(partKey, saved) {
     const total = 4; // 3 Task 1 questions + 1 Task 2
     const writingResponses = saved.writingResponses || [];
     const answered = writingResponses.filter((r) => r && r.length > 0).length;
+    const percent = total > 0 ? Math.round((answered / total) * 100) : 0;
+    return { answered, total, percent };
+  }
+
+  // SPEAKING section
+  if (section === "SPEAKING") {
+    const config = SECTION_CONFIG[partKey] || SECTION_CONFIG.SPEAKING;
+    const total = config ? config.items : 5; // Default to 5 tasks
+    const speakingResponses = saved.speakingResponses || [];
+    const answered = speakingResponses.filter(
+      (r) => r !== null && r !== undefined,
+    ).length;
     const percent = total > 0 ? Math.round((answered / total) * 100) : 0;
     return { answered, total, percent };
   }
