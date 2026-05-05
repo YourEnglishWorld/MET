@@ -44,16 +44,13 @@
   <!-- Ventana emergente cuando el usuario quiere volver atrás -->
   <div class="modal-overlay hidden" id="back-modal">
     <div class="modal">
-      <h2>¿Qué deseas hacer?</h2> <!-- Pregunta al usuario qué acción tomar -->
-      <p class="modal-subtitle">Selecciona una opción para continuar</p>
+      <h2>What would you like to do?</h2>
+      <p class="modal-subtitle">Select an option to continue</p>
       <div class="modal-buttons">
-        <!-- Botón para ir a la página principal -->
-        <button id="back-home-btn" class="btn btn-secondary">Volver al Home</button>
-        <!-- Botón para volver a la pregunta anterior -->
-        <button id="back-prev-btn" class="btn btn-primary">Pregunta Anterior</button>
+        <button id="back-home-btn" class="btn btn-secondary">Back to Home</button>
+        <button id="back-prev-btn" class="btn btn-primary">Previous Question</button>
       </div>
-      <!-- Botón para cerrar esta ventana sin hacer nada -->
-      <button id="back-cancel" class="btn-link" style="display:block; margin: 15px auto 0;">Cancelar</button>
+      <button id="back-cancel" class="btn-link" style="display:block; margin: 15px auto 0;">Cancel</button>
     </div>
   </div>
 
@@ -74,22 +71,20 @@
   <!-- Ventana para registrar al usuario antes de empezar el quiz -->
   <div class="modal-overlay hidden" id="registration-modal">
     <div class="modal">
-      <h2>Antes de comenzar</h2> <!-- Pide datos personales -->
-      <p class="modal-subtitle">Ingresa tus datos para continuar</p>
+      <h2>Before starting</h2>
+      <p class="modal-subtitle">Enter your details to continue</p>
       <form id="registration-form">
         <div class="form-group">
-          <label for="nombre">Nombre</label>
-          <input type="text" id="nombre" required placeholder="Tu nombre">
+          <label for="nombre">Name</label>
+          <input type="text" id="nombre" required placeholder="Your name">
         </div>
         <div class="form-group">
-          <label for="email">Correo</label>
-          <input type="email" id="email" required placeholder="tu@correo.com" list="email-domains">
+          <label for="email">Email</label>
+          <input type="email" id="email" required placeholder="your@email.com" list="email-domains">
         </div>
         <div class="modal-buttons">
-          <!-- Botón para no registrar y salir -->
-          <button type="button" class="btn btn-secondary" id="reg-cancel">Cancelar</button>
-          <!-- Botón para guardar datos y empezar -->
-          <button type="submit" class="btn btn-primary">Comenzar</button>
+          <button type="button" class="btn btn-secondary" id="reg-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Start</button>
         </div>
       </form>
     </div>
@@ -101,18 +96,15 @@
   <!-- Ventana para enviar dudas o consultas -->
   <div class="modal-overlay hidden" id="help-modal">
     <div class="modal">
-      <h2>Do you need help?</h2> <!-- Título en inglés -->
-      <p class="modal-subtitle">Si tienes alguna duda o consulta, escríbela aquí y te responderemos pronto.</p>
+      <h2>Do you need help?</h2>
+      <p class="modal-subtitle">If you have any questions, write them here and we'll respond soon.</p>
       <form id="help-form">
         <div class="form-group">
-          <!-- Caja de texto para escribir la consulta -->
-          <textarea id="mensajeAyuda" rows="5" placeholder="Escribe tu consulta..."></textarea>
+          <textarea id="help-text" rows="5" placeholder="Write your question here..."></textarea>
         </div>
         <div class="modal-buttons">
-          <!-- Botón para no enviar nada -->
-          <button type="button" class="btn btn-secondary" id="help-cancel">Cancelar</button>
-          <!-- Botón para enviar la consulta -->
-          <button type="submit" class="btn btn-primary">Enviar</button>
+          <button type="button" class="btn btn-secondary" id="help-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Send</button>
         </div>
       </form>
     </div>
@@ -121,26 +113,24 @@
   <!-- Ventana para cambiar los datos del usuario -->
   <div class="modal-overlay hidden" id="change-user-modal">
     <div class="modal">
-      <h2>Cambiar usuario</h2> <!-- Título de la ventana -->
-      <p class="modal-subtitle">Ingresa tus datos</p> <!-- Instrucción -->
+      <h2>Change user</h2>
+      <p class="modal-subtitle">Enter your details</p>
       <form id="change-user-form">
         <div class="form-group">
-          <label for="change-name">Nombre</label> <!-- Campo para nuevo nombre -->
-          <input type="text" id="change-name" required placeholder="Tu nombre">
+          <label for="change-name">Name</label>
+          <input type="text" id="change-name" required placeholder="Your name">
         </div>
         <div class="form-group">
-          <label for="change-email-username">Correo electrónico</label> <!-- Campo para nuevo correo -->
+          <label for="change-email-username">Email</label>
           <div class="email-input-group">
-            <input type="text" id="change-email-username" required placeholder="tu nombre de usuario" list="email-username-suggestions">
-            <span class="email-at">@</span> <!-- Símbolo arroba -->
+            <input type="text" id="change-email-username" required placeholder="username" list="email-username-suggestions">
+            <span class="email-at">@</span>
             <input type="text" id="change-email-domain" required list="email-domains" placeholder="gmail.com">
           </div>
         </div>
         <div class="modal-buttons">
-          <!-- Botón para no guardar cambios -->
-          <button type="button" class="btn btn-secondary" id="change-cancel">Cancelar</button>
-          <!-- Botón para guardar los nuevos datos -->
-          <button type="submit" class="btn btn-primary">Guardar</button>
+          <button type="button" class="btn btn-secondary" id="change-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save</button>
         </div>
       </form>
     </div>
@@ -149,13 +139,11 @@
   <!-- Ventana cuando se acaba el tiempo de la sección -->
   <div class="modal-overlay hidden" id="time-modal">
     <div class="modal">
-      <h2>⏰ Tiempo agotado</h2> <!-- Título de la ventana -->
-      <p class="modal-subtitle">Tu tiempo en esta sección ha terminado. ¿Qué deseas hacer?</p>
+      <h2>⏰ Time's up</h2>
+      <p class="modal-subtitle">Your time for this section is up. What would you like to do?</p>
       <div class="modal-buttons">
-        <!-- Botón para ir a la página principal -->
-        <button id="time-home-btn" class="btn btn-secondary">Ir al Home</button>
-        <!-- Botón para ver el resumen de respuestas -->
-        <button id="time-preview-btn" class="btn btn-primary">Ir al Preview</button>
+        <button id="time-home-btn" class="btn btn-secondary">Go to Home</button>
+        <button id="time-preview-btn" class="btn btn-primary">Go to Preview</button>
       </div>
     </div>
   </div>
@@ -167,7 +155,7 @@
       <header>
         <div id="header-top">
           <div id="user-info"> <!-- Muestra el nombre del usuario -->
-            <span>Welcome </span><span id="user-name" class="user-link"></span>
+            <span>Welcome, </span><span id="user-name" class="user-link"></span>
           </div>
           <div class="icon-group"> <!-- Botones de iconos -->
             <!-- Botón para borrar todo el progreso -->
@@ -248,14 +236,14 @@
           <!-- Fila principal: Anterior, Siguiente, COMPROBAR, Confirmar, Skip -->
           <div class="controls-row controls-row-main">
             <!-- Botón para ir a la pregunta anterior -->
-            <button id="prev-btn" class="btn btn-secondary hidden">← Anterior</button>
+            <button id="prev-btn" class="btn btn-secondary hidden">← Previous</button>
             <div class="controls-center"> <!-- Botones centrales -->
               <!-- Botón para avanzar a la siguiente pregunta -->
-              <button id="next-btn" class="btn btn-primary">Siguiente</button>
+              <button id="next-btn" class="btn btn-primary">Next</button>
               <!-- Botón para verificar respuestas (MC) -->
-              <button id="check-btn" class="btn btn-primary hidden">COMPROBAR</button>
+              <button id="check-btn" class="btn btn-primary hidden">CHECK</button>
               <!-- Botón para enviar la sección completa -->
-              <button id="submit-section-btn" class="btn btn-primary hidden">Confirmar</button>
+              <button id="submit-section-btn" class="btn btn-primary hidden">Confirm</button>
             </div>
             <!-- Botón para saltar a la siguiente parte -->
             <button id="skip-btn" class="btn btn-secondary hidden">Skip</button>
@@ -273,7 +261,7 @@
       <!-- Logo que aparece en los resultados -->
       <img src="data/images/yew logo png.png" alt="Your English World" id="results-logo">
       <!-- Título de resultados -->
-      <h2>¡Test completado!</h2>
+        <h2>Test completed!</h2>
       <!-- Aquí se muestra el porcentaje obtenido -->
       <p id="score-display"></p>
       <!-- Desglose por secciones (Writing, Listening, etc.) -->
@@ -282,7 +270,7 @@
         <!-- Botón para volver al inicio -->
         <button id="results-home-btn" class="btn btn-secondary">Home</button>
         <!-- Botón para enviar resultados por correo -->
-        <button id="email-btn" class="btn btn-primary">Enviar resultados por email</button>
+          <button id="email-btn" class="btn btn-primary">Send results via email</button>
       </div>
     </div>
   </div>

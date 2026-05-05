@@ -12,7 +12,7 @@ const quizData = {
 
 // Configuración de cada sección: tiempo en segundos, partes, etc.
 const SECTION_CONFIG = {
-  WRITING: { time: 45 * 60, tasks: 2, items: 4, name: "writing" },
+  WRITING: { time: 45 * 60, parts: 2, items: 4, name: "writing" },
   LISTENING: { time: 35 * 60, parts: 3, items: 50, name: "listening" },
   READING_AND_GRAMMAR: { time: 65 * 60, parts: 3, items: 50, name: "reading" },
   SPEAKING: { time: 10 * 60, parts: 2, items: 5, name: "speaking" },
@@ -125,7 +125,7 @@ const SECTION_DISPLAY = {
   SPEAKING: "SPEAKING",
 };
 
-// Obtiene la sección padre a partir de una clave (ej: "writing-task1" → "WRITING")
+// Obtiene la sección padre a partir de una clave (ej: "writing-part1" → "WRITING")
 function getSectionKey(partKey) {
   if (!partKey) return null;
   if (partKey.startsWith("WRITING")) return "WRITING";
@@ -145,7 +145,7 @@ function getSectionType(partKey) {
 }
 
 // Convierte el nombre de la URL (hash) a una clave interna
-// Ejemplo: "writing-task1" se convierte en "WRITING_TASK1"
+// Ejemplo: "writing-part1" se convierte en "WRITING_TASK1"
 // Convierte el nombre de la URL (hash) a una clave interna
 function getPartKeyFromHashName(hashName) {
   // Busca si el hash empieza con writing, listening, reading o speaking
@@ -155,7 +155,7 @@ function getPartKeyFromHashName(hashName) {
 
   // Toma la parte del nombre (writing, listening, etc.)
   const sectionBase = sectionMatch[1].toUpperCase();
-  // Quita la parte inicial para obtener el resto (task1, part2, etc.)
+  // Quita la parte inicial para obtener el resto (part1, part2, etc.)
   const suffix = hashName.replace(sectionMatch[0], "");
 
   // Busca si hay "part" o "task" seguido de un número
@@ -180,15 +180,13 @@ function getSectionBadge(partKey) {
   return SECTION_DISPLAY[section] || section;
 }
 
-// Obtiene la etiqueta de la parte (ej: "Task 1" o "Part 2")
+// Obtiene la etiqueta de la parte (ej: "Part 1" o "Part 2")
 function getPartLabel(partKey) {
   const config = SECTION_CONFIG[partKey];
   if (!config || !config.partId) return "";
   const section = getSectionKey(partKey);
-  // Para Writing usa "Task", para otros usa "Part"
-  return section === "WRITING"
-    ? `Task ${config.partId}`
-    : `Part ${config.partId}`;
+  // Todas las secciones usan "Part"
+  return `Part ${config.partId}`;
 }
 
 // Crea el texto de progreso (ej: "Task 1: Q1-3/50")
@@ -211,43 +209,43 @@ const SECTION_TIMES = {
 const WARNING_TIME = 5 * 60;
 
 // Lista de partes para cada sección (para navegación)
-// Define qué partes tiene cada sección (Task 1, Task 2, Part 1, etc.)
+// Define qué partes tiene cada sección (Part 1, Part 2, etc.)
 const SECTION_PARTS = {
-  // Writing: 3 Task 1 questions + 1 Task 2 essay (universal items)
+  // Writing: 3 Part 1 questions + 1 Part 2 essay (universal items)
   WRITING: [
     {
       inputType: "textarea",
-      task: 1,
+      partId: 1,
       number: 1,
       partKey: "WRITING_TASK1",
-      partLabel: "Task 1",
+      partLabel: "Part 1",
       itemNum: 1,
       totalInPart: 3,
     },
     {
       inputType: "textarea",
-      task: 1,
+      partId: 1,
       number: 2,
       partKey: "WRITING_TASK1",
-      partLabel: "Task 1",
+      partLabel: "Part 1",
       itemNum: 2,
       totalInPart: 3,
     },
     {
       inputType: "textarea",
-      task: 1,
+      partId: 1,
       number: 3,
       partKey: "WRITING_TASK1",
-      partLabel: "Task 1",
+      partLabel: "Part 1",
       itemNum: 3,
       totalInPart: 3,
     },
     {
       inputType: "textarea",
-      task: 2,
+      partId: 2,
       number: 1,
       partKey: "WRITING_TASK2",
-      partLabel: "Task 2",
+      partLabel: "Part 2",
       itemNum: 1,
       totalInPart: 1,
       isEssay: true,
@@ -269,7 +267,7 @@ const SECTION_PARTS = {
   SPEAKING: [
     {
       inputType: "audio",
-      task: 1,
+      partId: 1,
       number: 1,
       partKey: "SPEAKING_P1",
       partLabel: "Part 1",
@@ -278,7 +276,7 @@ const SECTION_PARTS = {
     },
     {
       inputType: "audio",
-      task: 1,
+      partId: 1,
       number: 2,
       partKey: "SPEAKING_P1",
       partLabel: "Part 1",
@@ -287,7 +285,7 @@ const SECTION_PARTS = {
     },
     {
       inputType: "audio",
-      task: 1,
+      partId: 1,
       number: 3,
       partKey: "SPEAKING_P1",
       partLabel: "Part 1",
@@ -296,7 +294,7 @@ const SECTION_PARTS = {
     },
     {
       inputType: "audio",
-      task: 2,
+      partId: 2,
       number: 1,
       partKey: "SPEAKING_P2",
       partLabel: "Part 2",
@@ -305,7 +303,7 @@ const SECTION_PARTS = {
     },
     {
       inputType: "audio",
-      task: 2,
+      partId: 2,
       number: 2,
       partKey: "SPEAKING_P2",
       partLabel: "Part 2",
@@ -322,7 +320,7 @@ function formatHash(partKey, groupIndex) {
 
   const sectionName = getSectionKey(partKey).toLowerCase(); // Nombre de la sección
   const partNum = config.partId || 1; // Número de parte
-  // Para Writing usa "task1", para otros usa "part1"
+  // Para Writing usa "part1", para otros usa "part1"
   const partName =
     sectionName === "writing" ? `task${partNum}` : `part${partNum}`;
 
@@ -353,7 +351,7 @@ function parseHash() {
   const parts = hash.split("/").filter((p) => p); // Divide por barras
   if (parts.length < 2) return null; // URL muy corta
 
-  const rawKey = parts[0]; // Primera parte (ej: "writing" o "writing-task1")
+  const rawKey = parts[0]; // Primera parte (ej: "writing" o "writing-part1")
   const sectionKey = getPartKeyFromHashName(rawKey); // Convierte a clave interna
   const parentSection = getSectionKey(sectionKey) || sectionKey;
 
@@ -1014,8 +1012,10 @@ function hideHelpModal() {
 function showChangeUserModal() {
   getElement("change-user-modal").classList.remove("hidden");
   getElement("change-name").value = currentUser?.name || "";
-  getElement("change-email-username").value = currentUser?.email?.split("@")[0] || "";
-  getElement("change-email-domain").value = currentUser?.email?.split("@")[1] || "gmail.com";
+  getElement("change-email-username").value =
+    currentUser?.email?.split("@")[0] || "";
+  getElement("change-email-domain").value =
+    currentUser?.email?.split("@")[1] || "gmail.com";
   getElement("change-name").focus();
 }
 
@@ -1074,7 +1074,8 @@ function updateSectionProgress() {
         return false;
       }).length;
 
-      const percent = sectionParts.length > 0 ? (answered / sectionParts.length) * 100 : 0;
+      const percent =
+        sectionParts.length > 0 ? (answered / sectionParts.length) * 100 : 0;
       getElement("progress-bar").style.width = percent + "%";
     }
     return;
@@ -1246,9 +1247,9 @@ function hasSectionContent(partKey) {
 
   if (!sectionData) return false;
 
-  // Textarea (Writing): validate groups array (has task1 + task2)
+  // Textarea (Writing): validate parts array (has part1 + part2)
   if (sectionType === "textarea") {
-    return sectionData.groups && sectionData.groups.length > 0;
+    return sectionData.parts && sectionData.parts.length > 0;
   }
 
   // Audio (Speaking): validate parts array (has tasks)
@@ -1363,9 +1364,7 @@ function beginQuiz(section) {
 
   // Validate content exists before proceeding
   if (!hasSectionContent(section)) {
-    alert(
-      `La sección de ${SECTION_DISPLAY[currentSection]} aún no tiene contenido.`,
-    );
+    alert(`The ${SECTION_DISPLAY[currentSection]} section has no content yet.`);
     return;
   }
 
@@ -1395,7 +1394,7 @@ function beginWriting(partKey, saved) {
   const sectionData = quizData[currentSection];
 
   // Validation already done in beginQuiz(), just check for safety
-  if (!sectionData || !sectionData.groups || sectionData.groups.length === 0) {
+  if (!sectionData || !sectionData.parts || sectionData.parts.length === 0) {
     console.error("Writing section has no content");
     return;
   }
@@ -1404,18 +1403,18 @@ function beginWriting(partKey, saved) {
   const hasSavedProgress = saved && saved.currentPartKey === partKey;
 
   if (hasSavedProgress && saved.writingGroupId) {
-    const group = sectionData.groups.find((g) => g.id === saved.writingGroupId);
+    const group = sectionData.parts.find((g) => g.id === saved.writingGroupId);
     if (group) {
       currentGroup = group;
       sectionResponses = saved.writingResponses || [];
       currentItemIndex = saved.itemIndex || 0;
     } else {
-      currentGroup = shuffleArray([...sectionData.groups])[0];
+      currentGroup = shuffleArray([...sectionData.parts])[0];
       sectionResponses = [];
       currentItemIndex = 0;
     }
   } else {
-    currentGroup = shuffleArray([...sectionData.groups])[0];
+    currentGroup = shuffleArray([...sectionData.parts])[0];
     sectionResponses = [];
     currentItemIndex = 0;
   }
@@ -1426,7 +1425,7 @@ function beginWriting(partKey, saved) {
   getElement("results-container").classList.add("hidden");
 
   setupInstructionsPanel();
-  logActivity("INICIO", `${currentSection} - Grupo: ${currentGroup.id}`);
+  logActivity("START", `${currentSection} - Group: ${currentGroup.id}`);
 
   // Find the item index in SECTION_PARTS that matches the partKey
   const sectionParts = SECTION_PARTS[currentSection];
@@ -1494,10 +1493,10 @@ function renderWritingStep(item, group) {
 
   if (isEssay) {
     const groupData = group;
-    html += `<div class="writing-task-prompt">${groupData.task2.topic}</div>`;
-    html += `<div class="writing-task-prompt" style="font-style:italic">${groupData.task2.prompt}</div>`;
+    html += `<div class="writing-task-prompt">${groupData.part2.topic}</div>`;
+    html += `<div class="writing-task-prompt" style="font-style:italic">${groupData.part2.prompt}</div>`;
   } else {
-    const taskData = group.task1.find((t) => t.number === item.itemNum);
+    const taskData = group.part1.find((t) => t.number === item.itemNum);
     if (taskData) {
       html += `<div class="writing-task-prompt">${taskData.text}</div>`;
     }
@@ -1697,7 +1696,7 @@ function beginMcPart(partKey, saved = null) {
   getElement("results-container").classList.add("hidden");
 
   setupInstructionsPanel();
-  logActivity("INICIO", `${section} Part ${config.partId}`);
+  logActivity("START", `${section} Part ${config.partId}`);
   loadGroup();
   updatePrevButtonVisibility();
   startTimer(section);
@@ -1903,7 +1902,7 @@ function renderGroupQuestions(grp) {
 
     html += `<div class="group-question-item" data-global="${globalNum}">`;
     html += `<div class="group-q-header">
-      <span class="group-q-number">Pregunta ${globalNum}</span>`;
+       <span class="group-q-number">Question ${globalNum}</span>`;
     if (q.extraAudio) {
       html += `<audio controls src="${getAudioPath(q.extraAudio)}" class="extra-audio-inline"></audio>`;
     }
@@ -1932,9 +1931,9 @@ function renderGroupQuestions(grp) {
     if (isAnswered && savedAnswer) {
       const isCorrect = letters[q.correctShuffledIndex] === savedAnswer;
       if (isCorrect) {
-        html += "¡Correcto!";
+        html += "Correct!";
       } else {
-        html += `Incorrecto. Respuesta correcta: ${letters[q.correctShuffledIndex]}.`;
+        html += `Incorrect. Correct answer: ${letters[q.correctShuffledIndex]}.`;
       }
     }
     html += `</div>`;
@@ -1944,7 +1943,7 @@ function renderGroupQuestions(grp) {
   html += "</div>";
   html += '<div class="preview-submit-container">';
   html +=
-    '<button id="preview-confirm-btn" class="btn-submit-review">Confirmar</button>';
+    '<button id="preview-confirm-btn" class="btn-submit-preview">Confirm</button>';
   html += "</div>";
 
   getElement("options-container").innerHTML = html;
@@ -2066,7 +2065,7 @@ function checkCurrentGroup() {
       selectedOpt.classList.add("correct");
       if (feedback) {
         feedback.className = "group-q-feedback correct";
-        feedback.textContent = "¡Correcto!";
+        feedback.textContent = "Correct!";
       }
     } else {
       selectedOpt.classList.add("incorrect");
@@ -2252,7 +2251,7 @@ function updatePrevButtonVisibility() {
   if (prevBtn) prevBtn.classList.remove("hidden");
   if (nextBtn) {
     nextBtn.classList.remove("hidden");
-    nextBtn.textContent = "Siguiente";
+    nextBtn.textContent = "Next";
     nextBtn.classList.remove("btn-primary");
     nextBtn.classList.add("btn-secondary");
   }
@@ -2269,7 +2268,7 @@ function updatePrevButtonVisibility() {
     if (nextBtn) nextBtn.classList.add("hidden");
     if (submitBtn) {
       submitBtn.classList.remove("hidden");
-      submitBtn.textContent = "Confirmar";
+      submitBtn.textContent = "Confirm";
     }
     return;
   }
@@ -2294,7 +2293,7 @@ function updatePrevButtonVisibility() {
     // NEXT/FINISH button
     if (nextBtn) {
       if (isLastQ) {
-        nextBtn.textContent = "Finalizar sección";
+        nextBtn.textContent = "Finish section";
         nextBtn.classList.remove("btn-secondary");
         nextBtn.classList.add("btn-primary");
       }
@@ -2329,7 +2328,7 @@ function updatePrevButtonVisibility() {
       if (allChecked) {
         nextBtn.classList.remove("hidden");
         if (isLastQ) {
-          nextBtn.textContent = "Finalizar sección";
+          nextBtn.textContent = "Finish section";
           nextBtn.classList.remove("btn-secondary");
           nextBtn.classList.add("btn-primary");
         }
@@ -2498,7 +2497,7 @@ function beginSpeaking(partKey, saved = null) {
   getElement("results-container").classList.add("hidden");
 
   setupInstructionsPanel();
-  logActivity("INICIO", `${currentSection} Part ${config.partId}`);
+  logActivity("START", `${currentSection} Part ${config.partId}`);
 
   getAllSpeakingAudio()
     .then((records) => {
@@ -2591,8 +2590,8 @@ function renderPreview(section, items, inputType) {
       html += `<div class="preview-slide-header">${item.partLabel} - Question ${item.itemNum}</div>`;
       if (item.isEssay) {
         const group = currentGroup;
-        if (group && group.task2) {
-          html += `<div class="preview-question"><strong>Topic:</strong> ${group.task2.topic}</div>`;
+        if (group && group.part2) {
+          html += `<div class="preview-question"><strong>Topic:</strong> ${group.part2.topic}</div>`;
         }
       }
       html += `<div class="preview-q-answer ${hasResponse ? "answered" : "unanswered"}">`;
@@ -2630,7 +2629,7 @@ function renderPreview(section, items, inputType) {
   html += "</div>";
   html += '<div class="preview-submit-container">';
   html +=
-    '<button id="preview-confirm-btn" class="btn-submit-preview">Confirmar</button>';
+    '<button id="preview-confirm-btn" class="btn-submit-preview">Confirm</button>';
   html += "</div>";
 
   container.innerHTML = html;
@@ -2963,15 +2962,19 @@ function setupEventListeners() {
       e.preventDefault();
       const nombre = document.getElementById("nombre").value.trim();
       const email = document.getElementById("email").value.trim();
-      if (!isValidName(nombre) || !email.includes("@")) {
+      if (!isValidName(name) || !email.includes("@")) {
         alert("Please enter a valid name and email.");
         return;
       }
-      const user = { name: nombre, email };
+      const user = { name, email };
       saveUser(user);
 
       // Send registration data to Google Sheets
-      if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== "https://script.google.com/macros/s/AKfycbzrECTYkZ0hmA2r30G1YVWbQHVfnks6Q-3jBrwfAk0OQpHK_TQuLL4mxKy6Kkw5ZSDq/exec") {
+      if (
+        APPS_SCRIPT_URL &&
+        APPS_SCRIPT_URL !==
+          "https://script.google.com/macros/s/AKfycbzrECTYkZ0hmA2r30G1YVWbQHVfnks6Q-3jBrwfAk0OQpHK_TQuLL4mxKy6Kkw5ZSDq/exec"
+      ) {
         fetch(APPS_SCRIPT_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -2979,7 +2982,7 @@ function setupEventListeners() {
             nombre: nombre,
             email: email,
             categoria: "",
-            accion: "REGISTRO",
+            accion: "REGISTRATION",
             detalle: "User registered",
           }),
         }).catch(() => null);
@@ -3019,7 +3022,11 @@ function setupEventListeners() {
       saveUser(user);
 
       // Send updated user data to Google Sheets
-      if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== "https://script.google.com/macros/s/AKfycbzrECTYkZ0hmA2r30G1YVWbQHVfnks6Q-3jBrwfAk0OQpHK_TQuLL4mxKy6Kkw5ZSDq/exec") {
+      if (
+        APPS_SCRIPT_URL &&
+        APPS_SCRIPT_URL !==
+          "https://script.google.com/macros/s/AKfycbzrECTYkZ0hmA2r30G1YVWbQHVfnks6Q-3jBrwfAk0OQpHK_TQuLL4mxKy6Kkw5ZSDq/exec"
+      ) {
         fetch(APPS_SCRIPT_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -3027,7 +3034,7 @@ function setupEventListeners() {
             nombre: name,
             email: email,
             categoria: "",
-            accion: "CAMBIO_USUARIO",
+            accion: "CHANGE_USER",
             detalle: "User changed",
           }),
         }).catch(() => null);
@@ -3044,7 +3051,7 @@ function setupEventListeners() {
   // Help form
   document.getElementById("help-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
-    const mensaje = document.getElementById("mensajeAyuda").value.trim();
+    const mensaje = document.getElementById("help-text").value.trim();
     if (!mensaje) return;
 
     const detalle = mensaje.substring(0, 500);
@@ -3052,7 +3059,8 @@ function setupEventListeners() {
     // Send consultation to Google Sheets
     if (
       APPS_SCRIPT_URL &&
-      APPS_SCRIPT_URL !== "https://script.google.com/macros/s/AKfycbzrECTYkZ0hmA2r30G1YVWbQHVfnks6Q-3jBrwfAk0OQpHK_TQuLL4mxKy6Kkw5ZSDq/exec"
+      APPS_SCRIPT_URL !==
+        "https://script.google.com/macros/s/AKfycbzrECTYkZ0hmA2r30G1YVWbQHVfnks6Q-3jBrwfAk0OQpHK_TQuLL4mxKy6Kkw5ZSDq/exec"
     ) {
       fetch(APPS_SCRIPT_URL, {
         method: "POST",
@@ -3061,7 +3069,7 @@ function setupEventListeners() {
           nombre: currentUser?.name || "",
           email: currentUser?.email || "",
           categoria: currentSection || "",
-          accion: "CONSULTA",
+          accion: "CONSULTATION",
           detalle: detalle,
         }),
       }).catch(() => null);

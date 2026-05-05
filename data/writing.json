@@ -1,76 +1,76 @@
 {
-  "instructions": "There are two tasks in the writing section:\nFor Task 1, you will write short answers to three questions.\nFor Task 2, you will write an essay about a topic. Typically, the best responses will have at least 250 words.\n\nIn real MET, you will have 45 minutes to complete the tasks.\nWrite your responses by typing in the spaces provided.",
-  "task1Instructions": "Task 1: Write short answers to the three questions.",
-  "task2Instructions": "Task 2: Write an essay on the following topic.",
-  "groups": [
+  "instructions": "There are two parts in the writing section:\nFor Part 1, you will write short answers to three questions.\nFor Part 2, you will write an essay about a topic. Typically, the best responses will have at least 250 words.\n\nIn real MET, you will have 45 minutes to complete the parts.\nWrite your responses by typing in the spaces provided.",
+  "part1Instructions": "Part 1: Write short answers to the three questions.",
+  "part2Instructions": "Part 2: Write an essay on the following topic.",
+  "parts": [
     {
       "id": 1,
-      "task1": [
+      "part1": [
         {
-          "task": 1,
+          "partId": 1,
           "number": 1,
           "text": "What subject do you enjoy studying the most?"
         },
         {
-          "task": 1,
+          "partId": 1,
           "number": 2,
           "text": "Why do you find it interesting or useful?"
         },
         {
-          "task": 1,
+          "partId": 1,
           "number": 3,
           "text": "Describe a memorable class or project related to that subject."
         }
       ],
-      "task2": {
+      "part2": {
         "topic": "Many cities around the world are facing problems with air pollution caused by cars and factories. What steps can governments and individuals take to reduce pollution and improve air quality?",
         "prompt": "Support your ideas with examples."
       }
     },
     {
       "id": 2,
-      "task1": [
+      "part1": [
         {
-          "task": 1,
+          "partId": 1,
           "number": 1,
           "text": "What kind of job would you like to have in the future?"
         },
         {
-          "task": 1,
+          "partId": 1,
           "number": 2,
           "text": "What skills do you think are important for that job?"
         },
         {
-          "task": 1,
+          "partId": 1,
           "number": 3,
           "text": "Talk about any experience you've had that could help you in that career."
         }
       ],
-      "task2": {
+      "part2": {
         "topic": "Social media has become an important part of daily life for millions of people. Some believe it helps us stay connected, while others think it causes isolation and stress. Do you think social media has a positive or negative effect on society?",
         "prompt": "Explain your opinion with reasons and examples."
       }
     },
     {
       "id": 3,
-      "task1": [
+      "part1": [
         {
-          "task": 1,
+          "partId": 1,
           "number": 1,
           "text": "What do you usually do in your free time?"
         },
         {
-          "task": 1,
+          "partId": 1,
           "number": 2,
           "text": "Why do you enjoy that activity?"
         },
         {
-          "task": 1,
+          "partId": 1,
           "number": 3,
           "text": "Tell us about the last time you did it and how you felt."
         }
       ],
-      "task2": {
+      "part2": {
         "topic": "Fast food is popular because it is quick and inexpensive. However, eating too much fast food can lead to health problems. What can schools, families, and communities do to encourage healthier eating habits?",
         "prompt": "Provide examples to support your answer."
       }
