@@ -15,26 +15,10 @@ const SECTION_CONFIG = {
   WRITING: { time: 45 * 60, parts: 2, items: 4, name: "writing" },
   LISTENING: { time: 35 * 60, parts: 3, items: 50, name: "listening" },
   READING_AND_GRAMMAR: { time: 65 * 60, parts: 3, items: 50, name: "reading" },
-  SPEAKING: { time: 10 * 60, parts: 2, items: 5, name: "speaking" },
-  // Configuración de cada parte individual (Task 1, Task 2, Part 1, etc.)
-  WRITING_TASK1: {
-    key: "WRITING_TASK1",
-    time: 30 * 60,
-    tasks: 1,
-    items: 3,
-    name: "Task 1",
-    parentSection: "WRITING",
-    partId: 1,
-  },
-  WRITING_TASK2: {
-    key: "WRITING_TASK2",
-    time: 45 * 60,
-    tasks: 1,
-    items: 1,
-    name: "Task 2",
-    parentSection: "WRITING",
-    partId: 2,
-  },
+  SPEAKING: { time: 20 * 60, parts: 2, items: 5, name: "speaking" },
+  // Configuración de cada parte individual (Part 1, Part 2, etc.)
+  WRITING_P1: { key: "WRITING_P1", time: 30 * 60, parts: 1, questions: 3, items: 3, name: "writing-p1", parentSection: "WRITING", partId: 1 },
+  WRITING_P2: { key: "WRITING_P2", time: 15 * 60, parts: 1, questions: 1, items: 1, name: "writing-p2", parentSection: "WRITING", partId: 2 },
   LISTENING_P1: {
     key: "LISTENING_P1",
     time: 35 * 60,
@@ -89,24 +73,8 @@ const SECTION_CONFIG = {
     parentSection: "READING_AND_GRAMMAR",
     partId: 3,
   },
-  SPEAKING_P1: {
-    key: "SPEAKING_P1",
-    time: 10 * 60,
-    parts: 2,
-    items: 3,
-    name: "Part 1",
-    parentSection: "SPEAKING",
-    partId: 1,
-  },
-  SPEAKING_P2: {
-    key: "SPEAKING_P2",
-    time: 10 * 60,
-    parts: 2,
-    items: 2,
-    name: "Part 2",
-    parentSection: "SPEAKING",
-    partId: 2,
-  },
+  SPEAKING_P1: { key: "SPEAKING_P1", time: 10 * 60, parts: 1, tasks: 3, items: 3, name: "speaking-p1", parentSection: "SPEAKING", partId: 1 },
+  SPEAKING_P2: { key: "SPEAKING_P2", time: 10 * 60, parts: 1, tasks: 2, items: 2, name: "speaking-p2", parentSection: "SPEAKING", partId: 2 },
 };
 
 // Convierte nombre de sección (escrito) a clave interna (en inglés)
@@ -145,7 +113,7 @@ function getSectionType(partKey) {
 }
 
 // Convierte el nombre de la URL (hash) a una clave interna
-// Ejemplo: "writing-part1" se convierte en "WRITING_TASK1"
+// Ejemplo: "writing-part1" se convierte en "WRITING_P1"
 // Convierte el nombre de la URL (hash) a una clave interna
 function getPartKeyFromHashName(hashName) {
   // Busca si el hash empieza con writing, listening, reading o speaking
@@ -161,12 +129,8 @@ function getPartKeyFromHashName(hashName) {
   // Busca si hay "part" o "task" seguido de un número
   const partNum = suffix.match(/(?:part|task)(\d+)/i);
   if (partNum) {
-    // Combina la sección con el número de parte
-    // Para Writing usa TASK1, para otros usa P1
-    return `${sectionBase}_P${partNum[1]}`.replace(
-      "_P",
-      sectionBase === "WRITING" ? "_TASK" : "_P",
-    );
+    // Combina la sección con el número de parte (todas usan P1, P2, etc.)
+    return `${sectionBase}_P${partNum[1]}`;
   }
 
   // Si no hay número de parte, devuelve el nombre convertido
@@ -202,7 +166,7 @@ const SECTION_TIMES = {
   WRITING: 45 * 60, // 45 minutos
   LISTENING: 35 * 60, // 35 minutos
   READING_AND_GRAMMAR: 65 * 60, // 65 minutos
-  SPEAKING: 10 * 60, // 10 minutos
+  SPEAKING: 20 * 60, // 20 minutos
 };
 
 // Tiempo de advertencia (5 minutos antes de acabar)
@@ -217,7 +181,7 @@ const SECTION_PARTS = {
       inputType: "textarea",
       partId: 1,
       number: 1,
-      partKey: "WRITING_TASK1",
+      partKey: "WRITING_P1",
       partLabel: "Part 1",
       itemNum: 1,
       totalInPart: 3,
@@ -226,7 +190,7 @@ const SECTION_PARTS = {
       inputType: "textarea",
       partId: 1,
       number: 2,
-      partKey: "WRITING_TASK1",
+      partKey: "WRITING_P1",
       partLabel: "Part 1",
       itemNum: 2,
       totalInPart: 3,
@@ -235,7 +199,7 @@ const SECTION_PARTS = {
       inputType: "textarea",
       partId: 1,
       number: 3,
-      partKey: "WRITING_TASK1",
+      partKey: "WRITING_P1",
       partLabel: "Part 1",
       itemNum: 3,
       totalInPart: 3,
@@ -244,7 +208,7 @@ const SECTION_PARTS = {
       inputType: "textarea",
       partId: 2,
       number: 1,
-      partKey: "WRITING_TASK2",
+      partKey: "WRITING_P2",
       partLabel: "Part 2",
       itemNum: 1,
       totalInPart: 1,
@@ -320,9 +284,8 @@ function formatHash(partKey, groupIndex) {
 
   const sectionName = getSectionKey(partKey).toLowerCase(); // Nombre de la sección
   const partNum = config.partId || 1; // Número de parte
-  // Para Writing usa "part1", para otros usa "part1"
-  const partName =
-    sectionName === "writing" ? `task${partNum}` : `part${partNum}`;
+  // Todas las secciones usan "part" (part1, part2, etc.)
+  const partName = `part${partNum}`;
 
   // Si hay grupos, añade el rango de preguntas (ej: q01-03)
   if (questionGroups && questionGroups[groupIndex]) {
@@ -381,7 +344,7 @@ function parseHash() {
     };
   }
 
-  // Para navegación normal, usar la clave de parte (ej: WRITING_TASK1)
+  // Para navegación normal, usar la clave de parte (ej: WRITING_P1)
   const sectionParts = SECTION_PARTS[parentSection];
   const sectionType = getSectionType(parentSection);
 
@@ -773,10 +736,10 @@ const letters = ["A", "B", "C", "D"];
 const APPS_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbzrECTYkZ0hmA2r30G1YVWbQHVfnks6Q-3jBrwfAk0OQpHK_TQuLL4mxKy6Kkw5ZSDq/exec";
 
-// Límite de caracteres para Task 1
-const TASK1_CHAR_LIMIT = 750;
-// Límite de caracteres para Task 2
-const TASK2_CHAR_LIMIT = 3500;
+// Límite de caracteres para Part 1 (3 preguntas cortas)
+const WRITING_P1_CHAR_LIMIT = 750;
+// Límite de caracteres para Part 2 (ensayo)
+const WRITING_P2_CHAR_LIMIT = 3500;
 
 // Mezcla aleatoriamente los elementos de un arreglo
 function shuffleArray(array) {
@@ -1164,8 +1127,8 @@ function renderCategorySelect() {
     {
       key: "WRITING",
       name: "Writing",
-      description: "Task 1 (3 questions) and Task 2 (essay of 250 words)",
-      parts: [SECTION_CONFIG.WRITING_TASK1, SECTION_CONFIG.WRITING_TASK2],
+      description: "Part 1 (3 questions) and Part 2 (essay of 250 words)",
+      parts: [SECTION_CONFIG.WRITING_P1, SECTION_CONFIG.WRITING_P2],
     },
     {
       key: "LISTENING",
@@ -1206,9 +1169,10 @@ function renderCategorySelect() {
     partsContainer.className = "home-card-parts";
 
     sec.parts.forEach((part) => {
-      const hasContent = hasSectionContent(part.key);
+      const partKey = part.key;
+      const hasContent = hasSectionContent(partKey);
       const saved = loadProgress();
-      const partProgress = getPartProgress(part.key, saved);
+      const partProgress = getPartProgress(partKey, saved);
       const percent = partProgress.percent;
       const label = percent > 0 ? `${percent}%` : "";
 
@@ -1217,7 +1181,7 @@ function renderCategorySelect() {
 
       const partTitle = document.createElement("div");
       partTitle.className = "home-card-part-title";
-      partTitle.textContent = part.name || part.partLabel;
+      partTitle.textContent = getPartLabel(partKey) || part.name || part.partLabel;
       partBtn.appendChild(partTitle);
 
       if (!hasContent) {
@@ -1228,7 +1192,7 @@ function renderCategorySelect() {
         progressEl.textContent = label;
         partBtn.appendChild(progressEl);
 
-        partBtn.addEventListener("click", () => startFromSection(part.key));
+        partBtn.addEventListener("click", () => startFromSection(partKey));
       }
 
       partsContainer.appendChild(partBtn);
@@ -1486,7 +1450,7 @@ function renderWritingStep(item, group) {
 
   const container = getElement("options-container");
   const isEssay = item.isEssay || false;
-  const limit = isEssay ? TASK2_CHAR_LIMIT : TASK1_CHAR_LIMIT;
+  const limit = isEssay ? WRITING_P2_CHAR_LIMIT : WRITING_P1_CHAR_LIMIT;
 
   let html = '<div class="writing-question">';
   html += `<div class="writing-question-text">${item.partLabel} - Question ${item.itemNum}</div>`;
@@ -2201,7 +2165,7 @@ function setupTextareaEvents() {
   const sectionParts = SECTION_PARTS[currentSection];
   const currentItem = sectionParts ? sectionParts[currentItemIndex] : null;
   const isEssay = currentItem ? currentItem.isEssay : false;
-  const limit = isEssay ? TASK2_CHAR_LIMIT : TASK1_CHAR_LIMIT;
+  const limit = isEssay ? WRITING_P2_CHAR_LIMIT : WRITING_P1_CHAR_LIMIT;
 
   textarea.addEventListener("input", function () {
     const count = this.value.length;
