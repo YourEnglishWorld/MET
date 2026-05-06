@@ -5,75 +5,54 @@
   "parts": [
     {
       "id": 1,
-      "part1": [
+      "instructions": "Part 1: Write short answers to three questions.",
+      "abanicos": [
         {
-          "partId": 1,
-          "number": 1,
-          "text": "What subject do you enjoy studying the most?"
+          "id": "A",
+          "questions": [
+            { "partId": 1, "number": 1, "text": "What subject do you enjoy studying the most?" },
+            { "partId": 1, "number": 2, "text": "Why do you find it interesting or useful?" },
+            { "partId": 1, "number": 3, "text": "Describe a memorable class or project related to that subject." }
+          ]
         },
         {
-          "partId": 1,
-          "number": 2,
-          "text": "Why do you find it interesting or useful?"
+          "id": "B",
+          "questions": [
+            { "partId": 1, "number": 1, "text": "What kind of job would you like to have in the future?" },
+            { "partId": 1, "number": 2, "text": "What skills do you think are important for that job?" },
+            { "partId": 1, "number": 3, "text": "Talk about any experience you've had that could help you in that career." }
+          ]
         },
         {
-          "partId": 1,
-          "number": 3,
-          "text": "Describe a memorable class or project related to that subject."
+          "id": "C",
+          "questions": [
+            { "partId": 1, "number": 1, "text": "What do you usually do in your free time?" },
+            { "partId": 1, "number": 2, "text": "Why do you enjoy that activity?" },
+            { "partId": 1, "number": 3, "text": "Tell us about the last time you did it and how you felt." }
+          ]
         }
-      ],
-      "part2": {
-        "topic": "Many cities around the world are facing problems with air pollution caused by cars and factories. What steps can governments and individuals take to reduce pollution and improve air quality?",
-        "prompt": "Support your ideas with examples."
-      }
+      ]
     },
     {
       "id": 2,
-      "part1": [
+      "instructions": "Part 2: Write an essay on the following topic.",
+      "abanicos": [
         {
-          "partId": 1,
-          "number": 1,
-          "text": "What kind of job would you like to have in the future?"
+          "id": "A",
+          "topic": "Many cities around the world are facing problems with air pollution caused by cars and factories. What steps can governments and individuals take to reduce pollution and improve air quality?",
+          "prompt": "Support your ideas with examples."
         },
         {
-          "partId": 1,
-          "number": 2,
-          "text": "What skills do you think are important for that job?"
+          "id": "B",
+          "topic": "Social media has become an important part of daily life for millions of people. Some believe it helps us stay connected, while others think it causes isolation and stress. Do you think social media has a positive or negative effect on society?",
+          "prompt": "Explain your opinion with reasons and examples."
         },
         {
-          "partId": 1,
-          "number": 3,
-          "text": "Talk about any experience you've had that could help you in that career."
+          "id": "C",
+          "topic": "Fast food is popular because it is quick and inexpensive. However, eating too much fast food can lead to health problems. What can schools, families, and communities do to encourage healthier eating habits?",
+          "prompt": "Provide examples to support your answer."
         }
-      ],
-      "part2": {
-        "topic": "Social media has become an important part of daily life for millions of people. Some believe it helps us stay connected, while others think it causes isolation and stress. Do you think social media has a positive or negative effect on society?",
-        "prompt": "Explain your opinion with reasons and examples."
-      }
-    },
-    {
-      "id": 3,
-      "part1": [
-        {
-          "partId": 1,
-          "number": 1,
-          "text": "What do you usually do in your free time?"
-        },
-        {
-          "partId": 1,
-          "number": 2,
-          "text": "Why do you enjoy that activity?"
-        },
-        {
-          "partId": 1,
-          "number": 3,
-          "text": "Tell us about the last time you did it and how you felt."
-        }
-      ],
-      "part2": {
-        "topic": "Fast food is popular because it is quick and inexpensive. However, eating too much fast food can lead to health problems. What can schools, families, and communities do to encourage healthier eating habits?",
-        "prompt": "Provide examples to support your answer."
-      }
+      ]
     }
   ]
 }

@@ -4,37 +4,42 @@
     {
       "id": 1,
       "instructions": "In this part, you will respond to three short prompts. You have 60 seconds for each response.",
-      "tasks": [
+      "abanicos": [
         {
-          "number": 1,
-          "prompt": "Describe a typical morning in your home.",
-          "timeLimit": 60
+          "id": "A",
+          "questions": [
+            { "number": 1, "prompt": "Describe a typical morning in your home.", "timeLimit": 60 },
+            { "number": 2, "prompt": "Tell me about a celebration or event that you enjoyed with your family or friends.", "timeLimit": 60 },
+            { "number": 3, "prompt": "Some people prefer quiet places to relax, while others enjoy busy environments. What do you prefer? Explain your reasons.", "timeLimit": 60 }
+          ]
         },
         {
-          "number": 2,
-          "prompt": "Tell me about a celebration or event that you enjoyed with your family or friends.",
-          "timeLimit": 60
-        },
-        {
-          "number": 3,
-          "prompt": "Some people prefer quiet places to relax, while others enjoy busy environments. What do you prefer? Explain your reasons.",
-          "timeLimit": 60
+          "id": "B",
+          "questions": [
+            { "number": 1, "prompt": "Describe your favorite place to study or work.", "timeLimit": 60 },
+            { "number": 2, "prompt": "Talk about a book, movie, or article that influenced your life.", "timeLimit": 60 },
+            { "number": 3, "prompt": "Some people like to plan their free time in detail, while others prefer to be spontaneous. Which do you prefer? Explain why.", "timeLimit": 60 }
+          ]
         }
       ]
     },
     {
       "id": 2,
       "instructions": "In this part, you will complete two longer speaking tasks. You have 90 seconds for each response.",
-      "tasks": [
+      "abanicos": [
         {
-          "number": 1,
-          "prompt": "You have been invited to join a community project that helps clean local parks. It will take place every weekend for two months. What are the advantages and disadvantages of participating?",
-          "timeLimit": 90
+          "id": "A",
+          "questions": [
+            { "number": 1, "prompt": "You have been invited to join a community project that helps clean local parks. It will take place every weekend for two months. What are the advantages and disadvantages of participating?", "timeLimit": 90 },
+            { "number": 2, "prompt": "A local company wants to reduce plastic use by encouraging customers to bring their own containers. I am the company manager. Tell me what you think about this idea and try to convince me to support it.", "timeLimit": 90 }
+          ]
         },
         {
-          "number": 2,
-          "prompt": "A local company wants to reduce plastic use by encouraging customers to bring their own containers. I am the company manager. Tell me what you think about this idea and try to convince me to support it.",
-          "timeLimit": 90
+          "id": "B",
+          "questions": [
+            { "number": 1, "prompt": "Your school is considering eliminating all extracurricular activities to focus more on academic subjects. What are the advantages and disadvantages of this decision?", "timeLimit": 90 },
+            { "number": 2, "prompt": "A local restaurant owner wants to ban smartphones in the dining area to encourage conversation. I am the restaurant owner. Try to convince me that this is a good idea.", "timeLimit": 90 }
+          ]
         }
       ]
     }

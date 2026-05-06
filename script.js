@@ -750,6 +750,8 @@ let currentAudioSrc = null;
 let currentAudioElement = null;
 // Si estamos en modo vista previa
 let sectionPreviewMode = false;
+// Abanico seleccionado actualmente
+let currentAbanicoId = null;
 
 // Usuario actual
 let currentUser = null;
@@ -828,11 +830,24 @@ function saveProgress() {
     itemIndex: currentItemIndex,
     writingResponses: sectionResponses,
     writingGroupId: currentGroup?.id || null,
-    speakingtaskIndex: speakingtaskIndex,
-    speakingResponses: speakingResponses.map((r) =>
-      r ? { duration: r.duration, timestamp: r.timestamp } : null,
-    ),
+    writingAbanicoId: currentAbanicoId,
+    speakingTaskIndex: speakingTaskIndex,
   };
+
+  // Save speaking responses separately to avoid circular reference
+  if (speakingResponses && speakingResponses.length > 0) {
+    progress.speakingResponses = speakingResponses.map((r) =>
+      r ? { duration: r.duration, timestamp: r.timestamp } : null
+    );
+  } else {
+    progress.speakingResponses = [];
+  }
+
+  // Save abanico IDs for MC sections
+  if (currentPartKey && currentAbanicoId) {
+    progress[`${currentPartKey}_abanicoId`] = currentAbanicoId;
+  }
+
   localStorage.setItem("metQuizProgress", JSON.stringify(progress));
 }
 
@@ -1406,8 +1421,17 @@ function beginQuiz(section) {
   }
 }
 
+// Select a random abanico from part's abanicos array
+function selectAbanico(partData) {
+  if (!partData || !partData.abanicos || partData.abanicos.length === 0) {
+    return null;
+  }
+  const randomIndex = Math.floor(Math.random() * partData.abanicos.length);
+  return partData.abanicos[randomIndex];
+}
+
 // Inicia una sección con inputType textarea (ej: Writing)
-function beginWriting(partKey, saved) {
+function beginWriting(partKey, saved = null) {
   const sectionData = quizData[currentSection];
 
   // Validation already done in beginQuiz(), just check for safety
@@ -1415,6 +1439,46 @@ function beginWriting(partKey, saved) {
     console.error("Writing section has no content");
     return;
   }
+
+  currentPartKey = partKey;
+  const hasSavedProgress = saved && saved.currentPartKey === partKey;
+
+  // Find the item index in SECTION_PARTS that matches the partKey
+  const sectionParts = SECTION_PARTS[currentSection];
+  const itemIndex = sectionParts.findIndex((item) => item.partKey === partKey);
+  currentItemIndex = itemIndex >= 0 ? itemIndex : 0;
+
+  // Load saved responses if available
+  if (hasSavedProgress) {
+    sectionResponses = saved.writingResponses || [];
+    currentAbanicoId = saved.writingAbanicoId || null;
+  } else {
+    sectionResponses = [];
+    // Select random abanico for each part
+    const partId = SECTION_CONFIG[partKey]?.partId;
+    const partData = sectionData.parts?.find((p) => p.id === partId);
+    const abanico = selectAbanico(partData);
+    currentAbanicoId = abanico ? abanico.id : null;
+  }
+  currentPreviewIndex = 0;
+
+  getElement("category-select").classList.add("hidden");
+  getElement("quiz-view").classList.remove("hidden");
+  getElement("results-container").classList.add("hidden");
+
+  setupInstructionsPanel();
+  logActivity("START", `${currentSection} - ${partKey}`);
+
+  renderStep(currentSection, currentItemIndex, sectionData, "textarea");
+  updatePrevButtonVisibility();
+
+  // Update hash using universal format
+  hashNavigationLocked = true;
+  updateHash(partKey, currentItemIndex);
+  hashNavigationLocked = false;
+
+  startTimer(currentSection);
+}
 
   currentPartKey = partKey;
   const hasSavedProgress = saved && saved.currentPartKey === partKey;
@@ -1485,7 +1549,7 @@ function renderStep(section, itemIndex, partData, inputType) {
   resumeTimer();
 }
 
-// Render Writing step (textarea input)
+// Render Writing step (textarea input) - uses abanicos
 function renderWritingStep(item, sectionData) {
   if (!item) return;
 
@@ -1497,16 +1561,44 @@ function renderWritingStep(item, sectionData) {
   html += `<div class="writing-question-text">${item.partLabel} - Question ${item.itemNum}</div>`;
 
   if (isEssay) {
-    // Find the part data from sectionData (quizData)
+    // Find the part data from sectionData (quizData) - Part 2
     const partData = sectionData?.parts?.find((p) => p.id === 2);
-    if (partData?.part2) {
+    // Get selected abanico
+    let abanico = null;
+    if (partData?.abanicos && currentAbanicoId) {
+      abanico = partData.abanicos.find((a) => a.id === currentAbanicoId);
+    }
+    if (!abanico && partData?.abanicos) {
+      abanico = partData.abanicos[0];
+    }
+    // Use abanico data (topic, prompt) instead of part2
+    if (abanico?.topic) {
+      html += `<div class="writing-task-prompt">${abanico.topic}</div>`;
+      html += `<div class="writing-task-prompt" style="font-style:italic">${abanico.prompt || ""}</div>`;
+    } else if (partData?.part2) {
+      // Fallback to old structure
       html += `<div class="writing-task-prompt">${partData.part2.topic}</div>`;
       html += `<div class="writing-task-prompt" style="font-style:italic">${partData.part2.prompt}</div>`;
     }
   } else {
-    // Find the part data from sectionData (quizData)
+    // Find the part data from sectionData (quizData) - Part 1
     const partData = sectionData?.parts?.find((p) => p.id === 1);
-    if (partData?.part1) {
+    // Get selected abanico
+    let abanico = null;
+    if (partData?.abanicos && currentAbanicoId) {
+      abanico = partData.abanicos.find((a) => a.id === currentAbanicoId);
+    }
+    if (!abanico && partData?.abanicos) {
+      abanico = partData.abanicos[0];
+    }
+    // Get question from abanico
+    if (abanico?.questions) {
+      const taskData = abanico.questions.find((t) => t.number === item.itemNum);
+      if (taskData) {
+        html += `<div class="writing-task-prompt">${taskData.text}</div>`;
+      }
+    } else if (partData?.part1) {
+      // Fallback to old structure
       const taskData = partData.part1.find((t) => t.number === item.itemNum);
       if (taskData) {
         html += `<div class="writing-task-prompt">${taskData.text}</div>`;
@@ -1526,18 +1618,28 @@ function renderWritingStep(item, sectionData) {
   setTimeout(() => setupTextareaEvents(), 0);
 }
 
-// Render Speaking step (audio input)
+// Render Speaking step (audio input) - uses abanicos
 function renderSpeakingStep(item, sectionData) {
   if (!item) return;
 
   const container = getElement("options-container");
   const taskIndex = item.itemNum - 1;
 
-  // Get tasks from sectionData (quizData[currentSection])
-  const partData =
-    sectionData?.parts?.find((p) => p.id === 1) ||
-    (sectionData?.parts && sectionData.parts[0]);
-  const task = partData?.tasks && partData.tasks[taskIndex];
+  // Get part data from sectionData
+  const partId = SECTION_CONFIG[currentPartKey]?.partId;
+  const partData = sectionData?.parts?.find((p) => p.id === partId);
+
+  // Get selected abanico
+  let abanico = null;
+  if (partData?.abanicos && currentAbanicoId) {
+    abanico = partData.abanicos.find((a) => a.id === currentAbanicoId);
+  }
+  if (!abanico && partData?.abanicos) {
+    abanico = partData.abanicos[0];
+  }
+
+  // Get question from abanico (unified as "questions" not "tasks")
+  const task = abanico?.questions && abanico.questions[taskIndex];
 
   if (!task) return;
 
@@ -1706,6 +1808,14 @@ function beginMcPart(partKey, saved = null) {
   currentAudioElement = null;
   if (!saved || saved.currentPartKey !== partKey) answeredQuestions = new Set();
 
+  // Select random abanico if not saved
+  if (saved && saved[`${partKey}_abanicoId`]) {
+    currentAbanicoId = saved[`${partKey}_abanicoId`];
+  } else {
+    const abanico = selectAbanico(partData);
+    currentAbanicoId = abanico ? abanico.id : null;
+  }
+
   buildQuestionGroups(partData, section, config.partId);
 
   getElement("category-select").classList.add("hidden");
@@ -1734,14 +1844,26 @@ function processQuestion(q, section, partId, globalNum) {
   };
 }
 
-// Crea los grupos de preguntas para una parte
+// Crea los grupos de preguntas para una parte (usando abanicos)
 function buildQuestionGroups(partData, section, partId) {
   questionGroups = [];
   shuffledQuestions = [];
   let globalNum = 0;
 
-  if (partData.questions) {
-    partData.questions.forEach((q) => {
+  // Find selected abanico
+  let selectedAbanico = null;
+  if (partData.abanicos && currentAbanicoId) {
+    selectedAbanico = partData.abanicos.find((a) => a.id === currentAbanicoId);
+  }
+  if (!selectedAbanico && partData.abanicos && partData.abanicos.length > 0) {
+    selectedAbanico = partData.abanicos[0];
+  }
+
+  // Use abanico data
+  const sourceData = selectedAbanico || partData;
+
+  if (sourceData.questions) {
+    sourceData.questions.forEach((q) => {
       globalNum++;
       const processed = processQuestion(q, section, partId, globalNum);
       shuffledQuestions.push(processed);
@@ -1752,8 +1874,8 @@ function buildQuestionGroups(partData, section, partId) {
         questions: [processed],
       });
     });
-  } else if (partData.audioGroups) {
-    partData.audioGroups.forEach((audioGroup) => {
+  } else if (sourceData.audioGroups) {
+    sourceData.audioGroups.forEach((audioGroup) => {
       const startNum = globalNum + 1;
       const groupQuestions = audioGroup.questions.map((q) => {
         globalNum++;
@@ -1771,8 +1893,8 @@ function buildQuestionGroups(partData, section, partId) {
         questions: groupQuestions,
       });
     });
-  } else if (partData.readingGroups) {
-    partData.readingGroups.forEach((rg) => {
+  } else if (sourceData.readingGroups) {
+    sourceData.readingGroups.forEach((rg) => {
       const startNum = globalNum + 1;
       const groupQuestions = rg.questions.map((q) => {
         globalNum++;
@@ -2486,7 +2608,7 @@ function clearSpeakingDB() {
   });
 }
 
-// Inicia una sección con inputType audio (ej: Speaking)
+// Inicia una sección con inputType audio (ej: Speaking) - uses abanicos
 function beginSpeaking(partKey, saved = null) {
   stopSpeakingMic();
 
@@ -2501,6 +2623,16 @@ function beginSpeaking(partKey, saved = null) {
   speakingResponses = hasSavedProgress ? saved.speakingResponses || [] : [];
 
   currentPartKey = partKey;
+
+  // Select random abanico if not saved
+  if (hasSavedProgress) {
+    currentAbanicoId = saved.speakingAbanicoId || null;
+  } else {
+    const partId = config.partId;
+    const partData = sectionData.parts?.find((p) => p.id === partId);
+    const abanico = selectAbanico(partData);
+    currentAbanicoId = abanico ? abanico.id : null;
+  }
 
   getElement("category-select").classList.add("hidden");
   getElement("quiz-view").classList.remove("hidden");
