@@ -3107,14 +3107,7 @@ function setupEventListeners() {
     checkCurrentGroup();
   });
 
-  // Preview carousel navigation
-  document.getElementById("preview-prev")?.addEventListener("click", () => {
-    navigateCarousel(-1);
-  });
-  document.getElementById("preview-next")?.addEventListener("click", () => {
-    navigateCarousel(1);
-  });
-
+  // Preview carousel navigation is handled by updateCarouselNav() (onclick)
   // Preview confirm button
   document
     .getElementById("preview-confirm-btn")

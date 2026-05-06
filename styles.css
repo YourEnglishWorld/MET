@@ -1419,13 +1419,6 @@ h1 {
   margin-bottom: 15px;
 }
 
-.carousel-slide {
-  flex: 1;
-  background-color: var(--bg-secondary);
-  border-radius: 16px;
-  padding: 20px;
-}
-
 .slide-header {
   font-size: 0.85rem;
   color: var(--color-primary);
