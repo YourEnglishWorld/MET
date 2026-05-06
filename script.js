@@ -837,7 +837,7 @@ function saveProgress() {
   // Save speaking responses separately to avoid circular reference
   if (speakingResponses && speakingResponses.length > 0) {
     progress.speakingResponses = speakingResponses.map((r) =>
-      r ? { duration: r.duration, timestamp: r.timestamp } : null
+      r ? { duration: r.duration, timestamp: r.timestamp } : null,
     );
   } else {
     progress.speakingResponses = [];
@@ -1477,7 +1477,7 @@ function beginWriting(partKey, saved = null) {
   updateHash(partKey, currentItemIndex);
   hashNavigationLocked = false;
 
-   startTimer(currentSection);
+  startTimer(currentSection);
 }
 
 // Universal step renderer for Writing (textarea) and Speaking (audio)
@@ -2045,12 +2045,6 @@ function renderGroupQuestions(grp) {
     html += `</div>`;
   });
 
-  html += "</div>";
-  html += '<div class="preview-submit-container">';
-  html +=
-    '<button id="preview-confirm-btn" class="btn-submit-preview">Submit section</button>';
-  html += "</div>";
-
   getElement("options-container").innerHTML = html;
 
   document
@@ -2347,10 +2341,8 @@ function getNextPartName() {
 function updatePrevButtonVisibility() {
   const prevBtn = document.getElementById("prev-btn");
   const nextBtn = document.getElementById("next-btn");
-  const submitBtn = document.getElementById("submit-section-btn");
   const skipBtn = document.getElementById("skip-btn");
   const checkBtn = document.getElementById("check-btn");
-  const controlsSecondary = document.getElementById("controls-secondary");
 
   // Reset all buttons
   if (prevBtn) prevBtn.classList.remove("hidden");
@@ -3046,8 +3038,10 @@ function isLastQuestionOfSection() {
     // Writing or Speaking (uses currentItemIndex)
     return currentItemIndex >= sectionParts.length - 1;
   } else {
-    // MC sections (uses currentGroupIndex)
-    return currentGroupIndex >= questionGroups.length - 1;
+    // MC sections (uses currentGroupIndex and currentPartKey)
+    const isLastGroupInPart = currentGroupIndex >= questionGroups.length - 1;
+    const isLastPart = isLastPartOfSection();
+    return isLastGroupInPart && isLastPart;
   }
 }
 
@@ -3057,13 +3051,19 @@ function isLastPartOfSection() {
   if (!sectionParts) return true;
 
   const hasInputType = sectionParts[0]?.inputType;
-  const currentIndex = hasInputType ? currentItemIndex : currentGroupIndex;
 
-  const currentPart = sectionParts[currentIndex];
-  if (!currentPart) return true;
-
-  const lastPart = sectionParts[sectionParts.length - 1];
-  return currentPart.partKey === lastPart.partKey;
+  if (hasInputType) {
+    // Writing/Speaking: use currentItemIndex
+    const currentIndex = currentItemIndex;
+    const currentPart = sectionParts[currentIndex];
+    if (!currentPart) return true;
+    const lastPart = sectionParts[sectionParts.length - 1];
+    return currentPart.partKey === lastPart.partKey;
+  } else {
+    // MC sections: use currentPartKey
+    const lastPart = sectionParts[sectionParts.length - 1];
+    return currentPartKey === lastPart.partKey;
+  }
 }
 
 // Get next part key (unificado)

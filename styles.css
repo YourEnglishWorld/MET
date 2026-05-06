@@ -2088,8 +2088,7 @@ h1 {
 
   #prev-btn,
   #skip-btn,
-  #next-btn,
-  #submit-section-btn {
+  #next-btn {
     flex-shrink: 0;
   }
 
