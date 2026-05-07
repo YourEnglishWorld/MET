@@ -1539,12 +1539,12 @@ function renderWritingStep(item, sectionData) {
     }
     // Use abanico data (topic, prompt) instead of part2
     if (abanico?.topic) {
-      html += `<div class="writing-task-prompt">${abanico.topic}</div>`;
-      html += `<div class="writing-task-prompt" style="font-style:italic">${abanico.prompt || ""}</div>`;
+      html += `<div class="question-text-style">${abanico.topic}</div>`;
+      html += `<div class="question-text-style">${abanico.prompt || ""}</div>`;
     } else if (partData?.part2) {
       // Fallback to old structure
-      html += `<div class="writing-task-prompt">${partData.part2.topic}</div>`;
-      html += `<div class="writing-task-prompt" style="font-style:italic">${partData.part2.prompt}</div>`;
+      html += `<div class="question-text-style">${partData.part2.topic}</div>`;
+      html += `<div class="question-text-style">${partData.part2.prompt}</div>`;
     }
   } else {
     // Find the part data from sectionData (quizData) - Part 1
@@ -1561,13 +1561,13 @@ function renderWritingStep(item, sectionData) {
     if (abanico?.questions) {
       const taskData = abanico.questions.find((t) => t.number === item.itemNum);
       if (taskData) {
-        html += `<div class="writing-task-prompt">${taskData.text}</div>`;
+        html += `<div class="question-text-style">${taskData.text}</div>`;
       }
     } else if (partData?.part1) {
       // Fallback to old structure
       const taskData = partData.part1.find((t) => t.number === item.itemNum);
       if (taskData) {
-        html += `<div class="writing-task-prompt">${taskData.text}</div>`;
+        html += `<div class="question-text-style">${taskData.text}</div>`;
       }
     }
   }
@@ -1611,7 +1611,7 @@ function renderSpeakingStep(item, sectionData) {
 
   let html = '<div class="speaking-task-container">';
   html += `<div class="writing-question-text">${item.partLabel} - Task ${item.itemNum}</div>`;
-  html += `<div class="writing-task-prompt">${task.prompt}</div>`;
+  html += `<div class="question-text-style">${task.prompt}</div>`;
   html += `<div class="speaking-timer" id="speaking-timer-display">Time: ${formatTime(task.timeLimit)}</div>`;
   html += `<div class="speaking-controls">`;
   html += `<button id="start-recording-btn" class="btn btn-primary">Begin speaking now</button>`;
@@ -2032,7 +2032,7 @@ function renderGroupQuestions(grp) {
 
     html += `</div>`;
 
-    html += `<div class="group-q-feedback ${isAnswered ? "" : "hidden"}" data-global="${globalNum}">`;
+    html += `<div class="feedback group-q-feedback ${isAnswered ? "" : "hidden"}" data-global="${globalNum}">`;
     if (isAnswered && savedAnswer) {
       const isCorrect = letters[q.correctShuffledIndex] === savedAnswer;
       if (isCorrect) {
@@ -2163,7 +2163,7 @@ function checkCurrentGroup() {
       score[q.category]++;
       selectedOpt.classList.add("correct");
       if (feedback) {
-        feedback.className = "group-q-feedback correct";
+        feedback.className = "feedback group-q-feedback correct";
         feedback.textContent = "Correct!";
       }
     } else {
@@ -2173,7 +2173,7 @@ function checkCurrentGroup() {
       );
       if (correctOpt) correctOpt.classList.add("correct");
       if (feedback) {
-        feedback.className = "group-q-feedback incorrect";
+        feedback.className = "feedback group-q-feedback incorrect";
         feedback.textContent = `Incorrecto. Respuesta correcta: ${letters[q.correctShuffledIndex]}.`;
       }
     }

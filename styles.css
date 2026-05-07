@@ -348,14 +348,43 @@ h1 {
   font-size: 0.95rem;
 }
 
+/* Unified feedback styles for all question types */
+.feedback {
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.feedback.correct {
+  background-color: var(--color-correct-bg);
+  color: var(--color-primary-dark);
+}
+
+.feedback.incorrect {
+  background-color: var(--color-incorrect-bg);
+  color: var(--color-incorrect);
+}
+
+[data-theme="dark"] .feedback.incorrect {
+  background-color: #3a2a10;
+  color: #fbbf24;
+}
+
+.feedback.hidden {
+  display: none;
+}
+
+/* Backward compatibility for #feedback-container */
 #feedback-container.correct {
   background-color: var(--color-correct-bg);
   color: var(--color-primary-dark);
 }
 
 #feedback-container.incorrect {
-  background-color: #fff3cd;
-  color: #856404;
+  background-color: var(--color-incorrect-bg);
+  color: var(--color-incorrect);
 }
 
 #controls {
@@ -1326,21 +1355,13 @@ h1 {
   font-weight: 500;
 }
 
-/* Unified prompt styles */
-.writing-task-prompt,
-.speaking-prompt {
-  font-size: 0.71rem;
-  color: var(--text-secondary);
-  margin-bottom: 15px;
-  font-style: italic;
-  background: var(--bg-secondary);
-  border-left: 4px solid #6366f1;
-  padding: 16px 20px;
-  border-radius: 8px;
-  line-height: 1.6;
-  width: 100%;
-  max-width: 600px;
-  text-align: center;
+/* Question text style - shared across all question types (MC, Writing, Speaking) */
+.question-text-style {
+  font-size: 1.05rem;
+  color: var(--text-primary);
+  line-height: 1.5;
+  margin-bottom: 14px;
+  font-weight: 500;
 }
 
 .writing-textarea {
@@ -1680,28 +1701,21 @@ h1 {
 }
 
 .group-q-feedback {
-  margin-top: 10px;
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  font-weight: 500;
+  /* Inherits from .feedback base class */
 }
 
 .group-q-feedback.correct {
-  background-color: var(--color-correct-bg);
-  color: var(--color-primary-dark);
+  /* Inherits from .feedback.correct */
   display: block !important;
 }
 
 .group-q-feedback.incorrect {
-  background-color: #fff3cd;
-  color: #856404;
+  /* Inherits from .feedback.incorrect */
   display: block !important;
 }
 
 [data-theme="dark"] .group-q-feedback.incorrect {
-  background-color: #3a2a10;
-  color: #fbbf24;
+  /* Inherits from .feedback.incorrect dark theme */
 }
 
 .group-q-feedback.hidden {
@@ -2275,11 +2289,6 @@ h1 {
   }
 
   @media (max-width: 768px) {
-    .speaking-prompt {
-      font-size: 0.9rem;
-      padding: 12px 16px;
-    }
-
     .btn-begin-speaking {
       padding: 12px 24px;
       font-size: 0.9rem;
