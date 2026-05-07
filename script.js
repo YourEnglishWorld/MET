@@ -138,30 +138,9 @@ function getSectionType(partKey) {
   return "mc";
 }
 
-// Convierte el nombre de la URL (hash) a una clave interna
-// Ejemplo: "writing-part1" se convierte en "WRITING_P1"
-// Convierte el nombre de la URL (hash) a una clave interna
-function getPartKeyFromHashName(hashName) {
-  // Busca si el hash empieza con writing, listening, reading o speaking
-  const sectionMatch = hashName.match(/^(writing|listening|reading|speaking)-/);
-  // Si no coincide, devuelve el nombre en mayúsculas cambiando guiones por guiones bajos
-  if (!sectionMatch) return hashName.toUpperCase().replace(/-/g, "_");
-
-  // Toma la parte del nombre (writing, listening, etc.)
-  const sectionBase = sectionMatch[1].toUpperCase();
-  // Quita la parte inicial para obtener el resto (part1, part2, etc.)
-  const suffix = hashName.replace(sectionMatch[0], "");
-
-  // Busca si hay "part" o "task" seguido de un número
-  const partNum = suffix.match(/(?:part|task)(\d+)/i);
-  if (partNum) {
-    // Combina la sección con el número de parte (todas usan P1, P2, etc.)
-    return `${sectionBase}_P${partNum[1]}`;
-  }
-
-  // Si no hay número de parte, devuelve el nombre convertido
-  return hashName.toUpperCase().replace(/-/g, "_");
-}
+// Función eliminada: getPartKeyFromHashName() ya no se usa
+// El nuevo formato de hash es: #/[section]/p[partId]/q[number]
+// Ejemplo: #/writing/p1/q1, #/listening/p2/q1-4
 
 // Muestra el nombre corto de la sección en la barra superior
 function getSectionBadge(partKey) {
@@ -304,41 +283,38 @@ const SECTION_PARTS = {
 };
 
 // Crea el texto de la URL (hash) para una parte y grupo
+// Formato: #/[section]/p[partId]/q[number] o #/[section]/p[partId]/q[start-end]
 function formatHash(partKey, groupIndex) {
   const config = SECTION_CONFIG[partKey];
-  if (!config) return `#/${partKey}/g${groupIndex}`; // Formato simple
+  if (!config) return `#/${partKey}/g${groupIndex}`;
 
-  const sectionName = getSectionKey(partKey).toLowerCase(); // Nombre de la sección
-  const partNum = config.partId || 1; // Número de parte
-  // Todas las secciones usan "part" (part1, part2, etc.)
-  const partName = `part${partNum}`;
+  const sectionKey = getSectionKey(partKey);
+  const sectionName = sectionKey.toLowerCase(); // writing, listening, etc.
+  const partNum = config.partId || 1;
+  const partPath = `p${partNum}`; // p1, p2, etc.
 
   const sectionType = getSectionType(partKey);
 
   // Para Writing y Speaking (textarea/audio), usar itemIndex para q number
   if (sectionType === "textarea" || sectionType === "audio") {
-    const sectionParts = SECTION_PARTS[getSectionKey(partKey)];
-    if (sectionParts && sectionParts[groupIndex]) {
+    const sectionParts = SECTION_PARTS[sectionKey];
+    if (sectionParts && sectionParts[groupIndex] !== undefined) {
       const item = sectionParts[groupIndex];
       const qNum = item.itemNum;
-      const qStr = qNum.toString().padStart(2, "0");
-      return `#/${sectionName}-${partName}/q${qStr}`;
+      return `#/${sectionName}/${partPath}/q${qNum}`;
     }
-    return `#/${sectionName}-${partName}/q01`;
+    return `#/${sectionName}/${partPath}/q1`;
   }
 
   // Para MC sections, usar questionGroups
   if (questionGroups && questionGroups[groupIndex]) {
     const group = questionGroups[groupIndex];
     const { start, end } = group.questionRange;
-    const qRange =
-      start === end
-        ? `q${start.toString().padStart(2, "0")}`
-        : `q${start.toString().padStart(2, "0")}-${end.toString().padStart(2, "0")}`;
-    return `#/${sectionName}-${partName}/${qRange}`;
+    const qRange = start === end ? `q${start}` : `q${start}-${end}`;
+    return `#/${sectionName}/${partPath}/${qRange}`;
   }
 
-  return `#/${sectionName}-${partName}/g${groupIndex}`;
+  return `#/${sectionName}/${partPath}/g${groupIndex}`;
 }
 
 // Actualiza la URL con el hash de la parte actual
@@ -347,18 +323,20 @@ function updateHash(partKey, groupIndex) {
 }
 
 // Lee la URL (hash) y extrae la información de la sección actual
+// Nuevo formato: #/[section]/p[partId]/q[number] o #/[section]/p[partId]/q[start-end]
 function parseHash() {
-  const hash = window.location.hash.slice(1); // Quita el # inicial
-  if (!hash || hash === "/") return null; // URL vacía
+  const hash = window.location.hash.slice(1);
+  if (!hash || hash === "/") return null;
 
-  const parts = hash.split("/").filter((p) => p); // Divide por barras
-  if (parts.length < 2) return null; // URL muy corta
+  const parts = hash.split("/").filter((p) => p);
+  if (parts.length < 2) return null;
 
-  const rawKey = parts[0]; // Primera parte (ej: "writing" o "writing-part1")
-  const sectionKey = getPartKeyFromHashName(rawKey); // Convierte a clave interna
-  const parentSection = getSectionKey(sectionKey) || sectionKey;
+  // parts[0] = section name (writing, listening, reading, speaking)
+  const sectionName = parts[0];
+  const parentSection = SECTION_NAMES[sectionName];
+  if (!parentSection) return null;
 
-  // Si es vista previa - usar nombre de sección (ej: /#/writing/preview)
+  // Check for preview: #/writing/preview
   if (parts[1] === "preview") {
     return {
       section: parentSection,
@@ -371,7 +349,7 @@ function parseHash() {
     };
   }
 
-  // Si es vista de resultados - usar nombre de sección (ej: /#/writing/results)
+  // Check for results: #/writing/results
   if (parts[1] === "results") {
     return {
       section: parentSection,
@@ -384,44 +362,30 @@ function parseHash() {
     };
   }
 
-  // Para navegación normal, usar la clave de parte (ej: WRITING_P1)
-  const sectionParts = SECTION_PARTS[parentSection];
-  const sectionType = getSectionType(parentSection);
+  // Parse part: parts[1] should be p1, p2, etc.
+  if (parts.length < 3) return null;
+  const partMatch = parts[1]?.match(/^p(\d+)$/);
+  if (!partMatch) return null;
 
-  if (sectionType === "textarea" || sectionType === "audio") {
-    // Writing/Speaking: parse q number from hash
-    const qMatch = parts[1]?.match(/^q(\d+)(?:-(\d+))?$/);
-    if (qMatch) {
-      const qStart = parseInt(qMatch[1], 10);
-      return {
-        section: sectionKey,
-        parentSection,
-        taskPart: null,
-        qStart,
-        qEnd: qMatch[2] ? parseInt(qMatch[2], 10) : qStart,
-        groupIndex: null,
-        hash,
-      };
-    }
-  } else {
-    // MC sections: parse q range from hash
-    const rangeMatch = parts[1]?.match(/^q(\d+)(?:-(\d+))?$/);
-    if (rangeMatch) {
-      const qStart = parseInt(rangeMatch[1], 10);
-      const qEnd = rangeMatch[2] ? parseInt(rangeMatch[2], 10) : qStart;
-      return {
-        section: sectionKey,
-        parentSection,
-        taskPart: null,
-        qStart,
-        qEnd,
-        groupIndex: null,
-        hash,
-      };
-    }
-  }
+  const partId = parseInt(partMatch[1], 10);
+  const partKey = `${parentSection}_P${partId}`;
 
-  return null;
+  // Parse question: parts[2] should be q1 or q1-4
+  const qMatch = parts[2]?.match(/^q(\d+)(?:-(\d+))?$/);
+  if (!qMatch) return null;
+
+  const qStart = parseInt(qMatch[1], 10);
+  const qEnd = qMatch[2] ? parseInt(qMatch[2], 10) : qStart;
+
+  return {
+    section: partKey,
+    parentSection,
+    taskPart: null,
+    qStart,
+    qEnd,
+    groupIndex: null,
+    hash,
+  };
 }
 
 // Crea una clave única para guardar cada respuesta
@@ -481,7 +445,7 @@ function loadFromHash() {
     return;
   }
 
-  const { section, parentSection, taskPart, qStart, qEnd } = parsed;
+  const { section, parentSection, taskPart, qStart } = parsed;
 
   if (!section || !SECTION_CONFIG[section]) {
     if (!currentSection) renderCategorySelect();
@@ -514,62 +478,58 @@ function loadFromHash() {
     return;
   }
 
-  // Universal logic: handle navigation based on SECTION_PARTS
-  const sectionKey = parentSection || getSectionKey(section);
-  const sectionParts = SECTION_PARTS[sectionKey];
-  const sectionType = getSectionType(section);
+  // Normal navigation to a specific question
+  const sectionKey = parentSection;
+  const targetPartKey = section; // section is the partKey
+  const sectionType = getSectionType(targetPartKey);
 
-  if (sectionParts && sectionKey) {
-    if (qStart !== null) {
-      // Find the item in SECTION_PARTS that matches this question number
-      const targetItem = sectionParts.find((item) => {
-        if (sectionType === "textarea" || sectionType === "audio") {
-          // For Writing/Speaking: qStart corresponds to item number
-          return qStart === item.itemNum;
+  // Check if we need to navigate to a different section
+  if (currentSection !== sectionKey) {
+    beginQuiz(sectionKey);
+  }
+
+  // Navigate to the specific part if needed
+  if (currentPartKey !== targetPartKey) {
+    if (sectionType === "textarea") {
+      beginWriting(targetPartKey);
+    } else if (sectionType === "audio") {
+      beginSpeaking(targetPartKey);
+    } else {
+      beginMcPart(targetPartKey);
+    }
+  }
+
+  // Navigate to the specific question within the current part
+  setTimeout(() => {
+    if (sectionType === "textarea" || sectionType === "audio") {
+      // Writing or Speaking
+      const sectionParts = SECTION_PARTS[sectionKey];
+      const targetItemIndex = sectionParts.findIndex(
+        (item) => item.partKey === targetPartKey && item.itemNum === qStart,
+      );
+      if (targetItemIndex >= 0) {
+        currentItemIndex = targetItemIndex;
+        renderStep(
+          sectionKey,
+          currentItemIndex,
+          quizData[sectionKey],
+          sectionType,
+        );
+      }
+    } else {
+      // MC section
+      if (questionGroups.length > 0) {
+        const targetGroupIndex = questionGroups.findIndex(
+          (g) =>
+            qStart >= g.questionRange.start && qStart <= g.questionRange.end,
+        );
+        if (targetGroupIndex >= 0) {
+          currentGroupIndex = targetGroupIndex;
+          loadGroup();
         }
-        return false;
-      });
-
-      if (targetItem && currentPartKey !== targetItem.partKey) {
-        navigateToPart(targetItem.partKey);
-        return;
-      } else if (targetItem) {
-        // Same part, just render the step
-        const itemIndex = sectionParts.indexOf(targetItem);
-        renderStep(sectionKey, itemIndex, currentGroup, targetItem.inputType);
-        return;
       }
     }
-  }
-
-  // For MC sections with question groups
-  if (
-    currentPartKey === section &&
-    qStart !== null &&
-    questionGroups.length > 0
-  ) {
-    const targetGroup = questionGroups.findIndex(
-      (g) => qStart >= g.questionRange.start && qStart <= g.questionRange.end,
-    );
-    if (targetGroup >= 0 && targetGroup !== currentGroupIndex) {
-      currentGroupIndex = targetGroup;
-      loadGroup();
-      return;
-    }
-    return;
-  }
-
-  // Navigate to different part
-  if (
-    sectionKey &&
-    currentSection === sectionKey &&
-    currentPartKey !== section
-  ) {
-    navigateToPart(section);
-    return;
-  }
-
-  beginQuiz(section);
+  }, 200);
 }
 
 window.addEventListener("hashchange", loadFromHash);
@@ -2457,7 +2417,7 @@ function updatePrevButtonVisibility() {
 // Variables para la sección de Speaking
 let speakingPart = null;
 // Índice de la tarea actual
-let speakingtaskIndex = 0;
+let speakingTaskIndex = 0;
 // Respuestas de audio
 let speakingResponses = [];
 // Tiempo restante de Speaking
