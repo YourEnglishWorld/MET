@@ -3393,6 +3393,38 @@ function setupEventListeners() {
     showChangeUserModal();
   });
 
+  // Change user modal cancel button
+  document.getElementById("change-cancel")?.addEventListener("click", () => {
+    hideChangeUserModal();
+  });
+
+  // Change user form submit
+  document
+    .getElementById("change-user-form")
+    ?.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const nombre = document.getElementById("change-name").value.trim();
+      const username = document
+        .getElementById("change-email-username")
+        .value.trim();
+      const domain = document
+        .getElementById("change-email-domain")
+        .value.trim();
+      if (!isValidName(nombre) || !username || !domain) {
+        alert("Please enter a valid name and email.");
+        return;
+      }
+      const email = username + "@" + domain;
+      if (!email.includes("@")) {
+        alert("Please enter a valid email.");
+        return;
+      }
+      const user = { name: nombre, email: email };
+      saveUser(user);
+      updateUserDisplay();
+      hideChangeUserModal();
+    });
+
   // Help form
   document.getElementById("help-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
