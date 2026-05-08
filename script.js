@@ -2775,58 +2775,37 @@ function buildPreviewSlides(section, items, inputType) {
   const saved = loadProgress();
   const slides = [];
 
-  if (inputType === "textarea") {
-    // Writing preview
-    const responses = saved?.writingResponses || sectionResponses || [];
+  if (inputType === "textarea" || inputType === "audio") {
+    // Writing/Speaking: group items by partKey, one slide per Part
+    const partMap = {};
     items.forEach((item) => {
-      const response = responses[item.itemNum - 1] || "";
-      const hasResponse = typeof response === "string" && response.length > 0;
-
-      let html = '<div class="preview-card">';
-      html += `<div class="preview-card-header">${item.partLabel} - Question ${item.itemNum}</div>`;
-      const sectionData = quizData[section];
-      const partData = sectionData?.parts?.find((p) => p.id === item.partId);
-      const abanicoId = saved?.writingAbanicoId || currentAbanicoId || null;
-      let abanico = null;
-      if (partData?.abanicos && abanicoId) {
-        abanico = partData.abanicos.find((a) => a.id === abanicoId);
+      if (!partMap[item.partKey]) {
+        partMap[item.partKey] = {
+          partKey: item.partKey,
+          partLabel: item.partLabel,
+          partId: item.partId,
+          items: [],
+        };
       }
-      if (!abanico && partData?.abanicos) {
-        abanico = partData.abanicos[0];
-      }
-      if (item.isEssay) {
-        if (abanico?.topic) {
-          html += `<div class="preview-question"><strong>Topic:</strong> ${abanico.topic}</div>`;
-        }
-      } else {
-        const question =
-          abanico?.questions &&
-          abanico.questions.find((q) => q.number === item.itemNum);
-        if (question) {
-          html += `<div class="preview-question">${question.text}</div>`;
-        }
-      }
-      html += `<div class="preview-q-answer ${hasResponse ? "answered" : "unanswered"}">`;
-      html += hasResponse
-        ? response.substring(0, 300) + (response.length > 300 ? "..." : "")
-        : "Not answered";
-      html += "</div></div>";
-      slides.push(html);
+      partMap[item.partKey].items.push(item);
     });
-  } else if (inputType === "audio") {
-    // Speaking preview
-    const responses = saved?.speakingResponses || speakingResponses || [];
-    items.forEach((item) => {
-      const response = responses[item.itemNum - 1];
-      const hasResponse = response && response.blob;
 
+    const responses =
+      inputType === "textarea"
+        ? saved?.writingResponses || sectionResponses || []
+        : saved?.speakingResponses || speakingResponses || [];
+
+    const sectionData = quizData[section];
+    const abanicoId =
+      inputType === "textarea"
+        ? saved?.writingAbanicoId || currentAbanicoId || null
+        : saved?.speakingAbanicoId || currentAbanicoId || null;
+
+    Object.values(partMap).forEach((part) => {
       let html = '<div class="preview-card">';
-      html += `<div class="preview-card-header">${item.partLabel} - Task ${item.itemNum}</div>`;
-      const sectionData = quizData[section];
-      const partData =
-        sectionData?.parts?.find((p) => p.id === item.partId) ||
-        (sectionData?.parts && sectionData.parts[0]);
-      const abanicoId = saved?.speakingAbanicoId || currentAbanicoId || null;
+      html += `<div class="preview-card-header">${part.partLabel}</div>`;
+
+      const partData = sectionData?.parts?.find((p) => p.id === part.partId);
       let abanico = null;
       if (partData?.abanicos && abanicoId) {
         abanico = partData.abanicos.find((a) => a.id === abanicoId);
@@ -2834,17 +2813,51 @@ function buildPreviewSlides(section, items, inputType) {
       if (!abanico && partData?.abanicos) {
         abanico = partData.abanicos[0];
       }
-      const task = abanico?.questions && abanico.questions[item.itemNum - 1];
-      if (task) {
-        html += `<div class="preview-question">${task.prompt}</div>`;
-      }
-      html += `<div class="preview-q-answer ${hasResponse ? "answered" : "unanswered"}">`;
-      if (hasResponse) {
-        html += `<button class="btn-preview-playback" onclick="playSpeakingPreview(${item.itemNum - 1})">Play recording (${response.duration}s)</button>`;
-      } else {
-        html += "Not answered";
-      }
-      html += "</div></div>";
+
+      part.items.forEach((item) => {
+        const response = responses[item.itemNum - 1];
+        const hasResponse =
+          inputType === "textarea"
+            ? typeof response === "string" && response.length > 0
+            : response && response.blob;
+
+        if (inputType === "textarea") {
+          // Writing
+          if (item.isEssay) {
+            if (abanico?.topic) {
+              html += `<div class="preview-question"><strong>Topic:</strong> ${abanico.topic}</div>`;
+            }
+          } else {
+            const question =
+              abanico?.questions &&
+              abanico.questions.find((q) => q.number === item.itemNum);
+            if (question) {
+              html += `<div class="preview-question">${question.text}</div>`;
+            }
+          }
+          html += `<div class="preview-q-answer ${hasResponse ? "answered" : "unanswered"}">`;
+          html += hasResponse
+            ? response.substring(0, 300) + (response.length > 300 ? "..." : "")
+            : "Not answered";
+          html += "</div>";
+        } else {
+          // Speaking
+          const task =
+            abanico?.questions && abanico.questions[item.itemNum - 1];
+          if (task) {
+            html += `<div class="preview-question">${task.prompt}</div>`;
+          }
+          html += `<div class="preview-q-answer ${hasResponse ? "answered" : "unanswered"}">`;
+          if (hasResponse) {
+            html += `<button class="btn-preview-playback" onclick="playSpeakingPreview(${item.itemNum - 1})">Play recording (${response.duration}s)</button>`;
+          } else {
+            html += "Not answered";
+          }
+          html += "</div>";
+        }
+      });
+
+      html += "</div>";
       slides.push(html);
     });
   } else {
@@ -2970,14 +2983,18 @@ function getProgressKeyForPreview(partKey, qNum) {
   return `${partKey.toLowerCase()}_q${qNum.toString().padStart(2, "0")}`;
 }
 
-// Play speaking preview audio
-function playSpeakingPreview(taskIndex) {
-  const saved = loadProgress();
-  const responses = saved?.speakingResponses || speakingResponses || [];
-  const response = responses[taskIndex];
-  if (response && response.blob) {
-    const audio = new Audio(URL.createObjectURL(response.blob));
+// Play speaking preview audio from IndexedDB
+async function playSpeakingPreview(taskIndex) {
+  const record = await getSpeakingAudio(taskIndex).catch(() => null);
+  if (record && record.blob) {
+    const audio = new Audio(URL.createObjectURL(record.blob));
     audio.play();
+  } else {
+    const response = speakingResponses[taskIndex];
+    if (response && response.blob) {
+      const audio = new Audio(URL.createObjectURL(response.blob));
+      audio.play();
+    }
   }
 }
 
