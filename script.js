@@ -409,7 +409,7 @@ function getProgressKey(partKey, qNum) {
   if (config) {
     return `${config.name}_q${qNum.toString().padStart(2, "0")}`;
   }
-  return `${partKey.toLowerCase()}_q${qNum}`;
+  return `${partKey.toLowerCase()}_q${qNum.toString().padStart(2, "0")}`;
 }
 
 // Guarda la respuesta en el navegador
@@ -810,6 +810,7 @@ function shuffleOptions(question) {
 
 // Guarda el progreso del quiz en el navegador
 function saveProgress() {
+  const existing = JSON.parse(localStorage.getItem("metQuizProgress") || "{}");
   const progress = {
     currentIndex: currentQuestionIndex,
     currentSection: currentSection,
@@ -819,7 +820,7 @@ function saveProgress() {
     currentExerciseIndex: currentExerciseIndex,
     score: score,
     answeredQuestions: Array.from(answeredQuestions),
-    answersByPart: answersByPart,
+    answersByPart: existing.answersByPart || answersByPart || {},
     timerRemaining: timerRemaining,
     questionsOrder: shuffledQuestions.map((q) => ({
       exerciseIndex: q.exerciseIndex,
@@ -830,6 +831,7 @@ function saveProgress() {
     writingGroupId: currentGroup?.id || null,
     writingAbanicoId: currentAbanicoId,
     speakingTaskIndex: speakingTaskIndex,
+    answers: existing.answers || {},
   };
 
   // Save speaking responses separately to avoid circular reference
@@ -1994,10 +1996,10 @@ function renderGroupQuestions(grp) {
     const questionIdx = shuffledQuestions.findIndex(
       (sq) => sq.globalNumber === globalNum,
     );
-    const isAnswered = answeredQuestions.has(questionIdx);
-    const savedAnswer = isAnswered
-      ? getAnswerFromHash(currentPartKey, globalNum)
-      : null;
+    const savedDataFromHash = getAnswerFromHash(currentPartKey, globalNum);
+    const isAnswered =
+      answeredQuestions.has(questionIdx) || !!savedDataFromHash;
+    const savedAnswer = isAnswered ? savedDataFromHash : null;
 
     html += `<div class="group-question-item" data-global="${globalNum}">`;
     html += `<div class="group-q-header">
@@ -2168,7 +2170,7 @@ function checkCurrentGroup() {
       if (correctOpt) correctOpt.classList.add("correct");
       if (feedback) {
         feedback.className = "feedback group-q-feedback incorrect";
-        feedback.textContent = `Incorrecto. Respuesta correcta: ${letters[q.correctShuffledIndex]}.`;
+        feedback.textContent = `Wrong. Correct answer: ${letters[q.correctShuffledIndex]}.`;
       }
     }
 
@@ -2335,6 +2337,12 @@ function setupTextareaEvents() {
     if (counter) counter.textContent = count;
     if (counterContainer)
       counterContainer.classList.toggle("visible", count > limit * 0.9);
+
+    // Save textarea response to sectionResponses and localStorage
+    if (currentItem) {
+      sectionResponses[currentItem.itemNum - 1] = this.value;
+    }
+    saveProgress();
   });
 
   textarea.focus();
@@ -2813,7 +2821,7 @@ function buildPreviewSlides(section, items, inputType) {
         const hasResponse =
           inputType === "textarea"
             ? typeof response === "string" && response.length > 0
-            : response && response.blob;
+            : response && (response.blob || response.duration);
 
         if (inputType === "textarea") {
           // Writing
