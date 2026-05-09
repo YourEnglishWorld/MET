@@ -1278,7 +1278,8 @@ function getPartProgress(partKey, saved) {
     }
 
     const answered = itemsInPart.filter((item) => {
-      const response = responses[item.itemNum - 1];
+      const globalIdx = sectionParts.indexOf(item);
+      const response = responses[globalIdx];
       if (!response) return false;
 
       if (item.inputType === "textarea") {
@@ -1558,7 +1559,7 @@ function renderWritingStep(item, sectionData) {
     }
   }
 
-  const savedResponse = sectionResponses[item.itemNum - 1] || "";
+  const savedResponse = sectionResponses[currentItemIndex] || "";
   html += `<textarea id="writing-textarea" class="writing-textarea${isEssay ? " writing-textarea-large" : ""}" placeholder="Write your response here...">${savedResponse}</textarea>`;
   html += `<div class="char-counter" id="char-count-container">`;
   html += `<span id="char-count">${savedResponse.length}</span> / ${limit}`;
@@ -1575,7 +1576,7 @@ function renderSpeakingStep(item, sectionData) {
   if (!item) return;
 
   const container = getElement("options-container");
-  const taskIndex = item.itemNum - 1;
+  const taskIndex = currentItemIndex;
 
   // Get part data from sectionData
   const partId = SECTION_CONFIG[currentPartKey]?.partId;
@@ -2340,7 +2341,7 @@ function setupTextareaEvents() {
 
     // Save textarea response to sectionResponses and localStorage
     if (currentItem) {
-      sectionResponses[currentItem.itemNum - 1] = this.value;
+      sectionResponses[currentItemIndex] = this.value;
     }
     saveProgress();
   });
@@ -2817,7 +2818,8 @@ function buildPreviewSlides(section, items, inputType) {
       }
 
       part.items.forEach((item) => {
-        const response = responses[item.itemNum - 1];
+        const globalIdx = items.indexOf(item);
+        const response = responses[globalIdx];
         const hasResponse =
           inputType === "textarea"
             ? typeof response === "string" && response.length > 0
@@ -2851,7 +2853,7 @@ function buildPreviewSlides(section, items, inputType) {
           }
           html += `<div class="preview-q-answer ${hasResponse ? "answered" : "unanswered"}">`;
           if (hasResponse) {
-            html += `<button class="btn-preview-playback" onclick="playSpeakingPreview(${item.itemNum - 1})">Play recording (${response.duration}s)</button>`;
+            html += `<button class="btn-preview-playback" onclick="playSpeakingPreview(${globalIdx})">Play recording (${response.duration}s)</button>`;
           } else {
             html += "Not answered";
           }
@@ -3099,7 +3101,8 @@ function showResults() {
         }
 
         const answered = itemsInPart.filter((item) => {
-          const response = responses[item.itemNum - 1];
+          const globalIdx = sectionParts.indexOf(item);
+          const response = responses[globalIdx];
           if (!response) return false;
           if (item.inputType === "textarea") {
             return typeof response === "string" && response.length > 0;
