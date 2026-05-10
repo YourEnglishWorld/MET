@@ -776,6 +776,49 @@ const letters = ["A", "B", "C", "D"];
 const APPS_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbzrECTYkZ0hmA2r30G1YVWbQHVfnks6Q-3jBrwfAk0OQpHK_TQuLL4mxKy6Kkw5ZSDq/exec";
 
+// Envía datos de respuesta a Google Sheets (14 columnas universales)
+function sendAnswerToSheet(data) {
+  if (!APPS_SCRIPT_URL) return;
+  const payload = {
+    time: new Date().toISOString(),
+    user: currentUser?.name || "",
+    email: currentUser?.email || "",
+    partNum: data.partNum || "",
+    file: data.file || "",
+    readingText: data.readingText || "",
+    question: data.question || "",
+    type: data.type || "",
+    userChoice: data.userChoice || "",
+    userText: data.userText || "",
+    userVoice: data.userVoice || "",
+    userVoiceData: data.userVoiceData || "",
+    userVoiceName: data.userVoiceName || "",
+    correctAnswer: data.correctAnswer || "",
+    score: data.score !== undefined ? data.score : "",
+    notes: data.notes || "",
+  };
+  fetch(APPS_SCRIPT_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  }).catch(() => {
+    console.log("Answer data saved locally:", payload);
+  });
+}
+
+// Convierte un Blob a base64 para enviarlo al servidor
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result.split(",")[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
 // Límite de caracteres para Part 1 (3 preguntas cortas)
 const WRITING_P1_CHAR_LIMIT = 750;
 // Límite de caracteres para Part 2 (ensayo)
@@ -968,30 +1011,30 @@ function updateUserDisplay() {
 
 async function logActivity(accion, detalle = "") {
   if (!currentUser) return;
-
-  const data = {
-    timestamp: new Date().toISOString(),
-    nombre: currentUser.name,
-    email: currentUser.email,
-    categoria: currentSection || "",
-    accion: accion,
-    detalle: detalle,
-  };
-
+  if (!APPS_SCRIPT_URL) return;
   try {
-    if (
-      APPS_SCRIPT_URL &&
-      APPS_SCRIPT_URL !==
-        "https://script.google.com/macros/s/AKfycbzrECTYkZ0hmA2r30G1YVWbQHVfnks6Q-3jBrwfAk0OQpHK_TQuLL4mxKy6Kkw5ZSDq/exec"
-    ) {
-      await fetch(APPS_SCRIPT_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-    }
+    await fetch(APPS_SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        time: new Date().toISOString(),
+        user: currentUser.name,
+        email: currentUser.email,
+        partNum: "",
+        file: "",
+        readingText: "",
+        question: "",
+        type: "activity",
+        userChoice: "",
+        userText: detalle,
+        userVoice: "",
+        correctAnswer: "",
+        score: "",
+        notes: accion + (currentSection ? " [" + currentSection + "]" : ""),
+      }),
+    });
   } catch (error) {
-    console.log("Activity logged locally:", data);
+    console.log("Activity logged locally:", accion, detalle);
   }
 }
 
@@ -1690,6 +1733,9 @@ async function startSpeakingrecording(taskIndex, timeLimit) {
 
       saveProgress();
       updatePrevButtonVisibility();
+
+      // Send speaking audio to Google Sheets
+      sendCurrentSpeakingData(taskIndex, blob).catch(console.error);
     };
 
     speakingMediaRecorder.start();
@@ -2177,6 +2223,24 @@ function checkCurrentGroup() {
 
     answeredQuestions.add(questionIdx);
     saveAnswerToHash(letters[optIdx], q.globalNumber);
+
+    // Send MC answer to Google Sheets
+    const grpForSend = questionGroups[currentGroupIndex];
+    let sendReadingText = "";
+    if (grpForSend.passage) sendReadingText = grpForSend.passage;
+    if (grpForSend.article) sendReadingText = grpForSend.article.content || "";
+    const sendFile = q.audio || grpForSend.mainAudio || q.extraAudio || "";
+    sendAnswerToSheet({
+      section: currentSection,
+      partNum: SECTION_CONFIG[currentPartKey]?.partId || 1,
+      file: sendFile,
+      readingText: sendReadingText,
+      question: q.question,
+      type: "mc",
+      userChoice: letters[optIdx],
+      correctAnswer: letters[q.correctShuffledIndex],
+      score: isCorrect ? 1 : 0,
+    });
   });
 
   pauseTimer();
@@ -2216,8 +2280,73 @@ function getNextStep() {
   return null;
 }
 
+// Envía datos de respuesta de Writing a Sheets antes de navegar
+function sendCurrentWritingData() {
+  const sectionType = getSectionType(currentPartKey);
+  if (sectionType !== "textarea") return;
+  const sectionParts = SECTION_PARTS[currentSection];
+  const item = sectionParts?.[currentItemIndex];
+  if (!item) return;
+  const response = sectionResponses[currentItemIndex];
+  if (!response || response.length === 0) return;
+  const partData = quizData[currentSection]?.parts?.find(
+    (p) => p.id === item.partId,
+  );
+  let abanico = null;
+  if (partData?.abanicos && currentAbanicoId) {
+    abanico = partData.abanicos.find((a) => a.id === currentAbanicoId);
+  }
+  let qText = "";
+  if (item.isEssay) {
+    qText = abanico?.topic || "";
+  } else if (abanico?.questions) {
+    const task = abanico.questions.find((t) => t.number === item.itemNum);
+    qText = task?.text || "";
+  }
+  sendAnswerToSheet({
+    section: currentSection,
+    partNum: item.partId,
+    question: qText,
+    type: "writing",
+    userText: response,
+    score: 1,
+  });
+}
+
+// Envía datos de audio de Speaking a Sheets
+async function sendCurrentSpeakingData(taskIndex, blob) {
+  const sectionType = getSectionType(currentPartKey);
+  if (sectionType !== "audio") return;
+  const sectionParts = SECTION_PARTS[currentSection];
+  const item = sectionParts?.[currentItemIndex];
+  if (!item) return;
+  const partData = quizData[currentSection]?.parts?.find(
+    (p) => p.id === item.partId,
+  );
+  let abanico = null;
+  if (partData?.abanicos && currentAbanicoId) {
+    abanico = partData.abanicos.find((a) => a.id === currentAbanicoId);
+  }
+  const task = abanico?.questions?.[taskIndex];
+  const promptText = task?.prompt || "";
+  const base64 = await blobToBase64(blob);
+  const fileName =
+    (currentUser?.name || "user").replace(/\s+/g, "_") +
+    `_speaking_p${item.partId}_q${item.itemNum}.webm`;
+  sendAnswerToSheet({
+    section: currentSection,
+    partNum: item.partId,
+    question: promptText,
+    type: "speaking",
+    userVoiceData: base64,
+    userVoiceName: fileName,
+    score: 1,
+  });
+}
+
 // Unified: navega a un step específico por itemIndex (Writing/Speaking)
 function navigateToStep(itemIndex, newPartKey) {
+  sendCurrentWritingData();
   pauseTimer();
   saveProgress();
   if (newPartKey) currentPartKey = newPartKey;
@@ -3132,6 +3261,24 @@ function showResults() {
 
   logActivity("RESULTS", `Final score: ${percentage}%`);
 
+  // Send final results to Google Sheets
+  const scoreText = `${percentage}% (${totalCorrect}/${totalQuestions})`;
+  if (APPS_SCRIPT_URL) {
+    ["WRITING", "LISTENING", "READING_AND_GRAMMAR", "SPEAKING"].forEach(
+      (sec) => {
+        sendAnswerToSheet({
+          section: sec,
+          partNum: "",
+          question: "",
+          type: "result",
+          userText: scoreText,
+          score: "",
+          notes: `FINAL_RESULT - Total: ${totalCorrect}/${totalQuestions} = ${percentage}%`,
+        });
+      },
+    );
+  }
+
   stopTimer();
 }
 
@@ -3372,21 +3519,26 @@ function setupEventListeners() {
       saveUser(user);
       hideRegistrationModal();
 
-      // Send updated user data to Google Sheets
-      if (
-        APPS_SCRIPT_URL &&
-        APPS_SCRIPT_URL !==
-          "https://script.google.com/macros/s/AKfycbzrECTYkZ0hmA2r30G1YVWbQHVfnks6Q-3jBrwfAk0OQpHK_TQuLL4mxKy6Kkw5ZSDq/exec"
-      ) {
+      // Send registration to Google Sheets
+      if (APPS_SCRIPT_URL) {
         fetch(APPS_SCRIPT_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            nombre: nombre,
+            time: new Date().toISOString(),
+            user: nombre,
             email: email,
-            categoria: "",
-            accion: "REGISTER_USER",
-            detalle: "New user registered",
+            partNum: "",
+            file: "",
+            readingText: "",
+            question: "",
+            type: "registration",
+            userChoice: "",
+            userText: "New user registered",
+            userVoice: "",
+            correctAnswer: "",
+            score: "",
+            notes: "REGISTER_USER",
           }),
         }).catch(() => null);
       }
@@ -3446,20 +3598,27 @@ function setupEventListeners() {
     const detalle = mensaje.substring(0, 500);
 
     // Send consultation to Google Sheets
-    if (
-      APPS_SCRIPT_URL &&
-      APPS_SCRIPT_URL !==
-        "https://script.google.com/macros/s/AKfycbzrECTYkZ0hmA2r30G1YVWbQHVfnks6Q-3jBrwfAk0OQpHK_TQuLL4mxKy6Kkw5ZSDq/exec"
-    ) {
+    if (APPS_SCRIPT_URL) {
       fetch(APPS_SCRIPT_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          nombre: currentUser?.name || "",
+          time: new Date().toISOString(),
+          user: currentUser?.name || "",
           email: currentUser?.email || "",
-          categoria: currentSection || "",
-          accion: "CONSULTATION",
-          detalle: detalle,
+          partNum: "",
+          file: "",
+          readingText: "",
+          question: "",
+          type: "consultation",
+          userChoice: "",
+          userText: detalle,
+          userVoice: "",
+          correctAnswer: "",
+          score: "",
+          notes:
+            "CONSULTATION" +
+            (currentSection ? " [" + currentSection + "]" : ""),
         }),
       }).catch(() => null);
     }
@@ -3502,8 +3661,36 @@ function setupEventListeners() {
     renderCategorySelect();
   });
   document.getElementById("email-btn")?.addEventListener("click", () => {
+    const scoreDisplay =
+      document.getElementById("score-display")?.textContent || "";
+    // Send final results to Google Sheets
+    if (APPS_SCRIPT_URL) {
+      const sections = [
+        "WRITING",
+        "LISTENING",
+        "READING_AND_GRAMMAR",
+        "SPEAKING",
+      ];
+      sections.forEach((sec) => {
+        sendAnswerToSheet({
+          section: sec,
+          partNum: "",
+          question: "",
+          type: "result",
+          userText: scoreDisplay,
+          score: "",
+          notes: "FINAL_RESULT",
+        });
+      });
+    }
     const subject = "MET Quiz Results";
-    const body = `Results: ${document.getElementById("score-display")?.textContent || ""}`;
-    window.location.href = `mailto:${currentUser?.email || ""}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    const body = "Results: " + scoreDisplay;
+    window.location.href =
+      "mailto:" +
+      (currentUser?.email || "") +
+      "?subject=" +
+      encodeURIComponent(subject) +
+      "&body=" +
+      encodeURIComponent(body);
   });
 }

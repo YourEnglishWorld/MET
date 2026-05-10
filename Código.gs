@@ -1,69 +1,124 @@
-// Configuración
-const SHEET_NAME = 'YEW Quiz - Registros';
+// CONFIGURACIÓN
+const SHEET_ID = '1JPYGqlynR3mLNc9Wc243eg94WcsLz8VwdeZMlmtZWD8';
+const USER_VOICE_FOLDER_ID = '1frz7u-dHyejDu2kMDWwORKZgmTCLuBUI';
 const NOTIFICATION_EMAIL = 'yourenglishworld.dianagranados@gmail.com';
 
-// Función doPost para recibir datos del quiz
+const COLUMNS = [
+  'Time', 'User', 'Email', 'Part N°', 'File', 'ReadingText',
+  'Question', 'Type', 'UserChoice', 'UserText', 'UserVoice',
+  'CorrectAnswer', 'Score', 'Notes'
+];
+
+function getSheetName(section) {
+  if (!section) return 'Writing';
+  if (section.startsWith('WRITING')) return 'Writing';
+  if (section.startsWith('LISTENING')) return 'Listening';
+  if (section.startsWith('READING')) return 'ReadingGrammar';
+  if (section.startsWith('SPEAKING')) return 'Speaking';
+  if (section === 'consultation') return 'Writing';
+  return 'Writing';
+}
+
 function doPost(e) {
   try {
-    // Parsear los datos enviados
     const data = JSON.parse(e.postData.contents);
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const sheetName = getSheetName(data.section || data.type);
+    let sheet = ss.getSheetByName(sheetName);
 
-    // Abrir la hoja de cálculo
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    let sheet = ss.getSheetByName(SHEET_NAME);
-
-    // Crear la hoja si no existe
     if (!sheet) {
-      sheet = ss.insertSheet(SHEET_NAME);
-      // Configurar encabezados
-      sheet.getRange(1, 1, 1, 5).setValues([['Timestamp', 'Nombre', 'Email', 'Categoría', 'Acción', 'Detalle']]);
-      sheet.getRange(1, 1, 1, 5).setFontWeight('bold');
+      sheet = ss.insertSheet(sheetName);
+      const header = sheet.getRange(1, 1, 1, COLUMNS.length);
+      header.setValues([COLUMNS]);
+      header.setFontWeight('bold');
     }
 
-    // Preparar los datos en orden
-    const timestamp = new Date();
-    const nombre = data.name || '';
-    const email = data.email || '';
-    const categoria = data.category || '';
-    const accion = data.action || '';
-    const detalle = data.detail || '';
+    // Upload userVoice audio if present (base64)
+    let userVoiceUrl = data.userVoice || '';
+    if (data.userVoiceData && data.userVoiceName) {
+      try {
+        const folder = DriveApp.getFolderById(USER_VOICE_FOLDER_ID);
+        const decoded = Utilities.base64Decode(data.userVoiceData);
+        const blob = Utilities.newBlob(decoded, 'audio/webm', data.userVoiceName);
+        const file = folder.createFile(blob);
+        file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        userVoiceUrl = file.getUrl();
+      } catch (e) {
+        console.error('Error uploading audio:', e);
+      }
+    }
 
-    // Agregar fila con los datos
-    sheet.appendRow([timestamp, nombre, email, categoria, accion, detalle]);
+    const row = [
+      data.time || new Date().toISOString(),
+      data.user || '',
+      data.email || '',
+      data.partNum || '',
+      data.file || '',
+      data.readingText || '',
+      data.question || '',
+      data.type || '',
+      data.userChoice || '',
+      data.userText || '',
+      userVoiceUrl,
+      data.correctAnswer || '',
+      data.score !== undefined && data.score !== '' ? data.score : '',
+      data.notes || ''
+    ];
 
-    // Enviar notificación por email si es consulta
-    if (accion === 'CONSULTA') {
+    sheet.appendRow(row);
+
+    // Send email notification for consultations
+    if (data.type === 'consultation') {
       sendNotificationEmail(data);
     }
 
-    return ContentService.createTextOutput(JSON.stringify({ success: true }))
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: true, userVoiceUrl: userVoiceUrl }))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (error) {
-    return ContentService.createTextOutput(JSON.stringify({ success: false, error: error.message }))
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: false, error: error.message }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 }
 
-// Función para enviar notificación por email
 function sendNotificationEmail(data) {
   try {
     const subject = 'Nueva consulta - MET Quiz';
     const body = 'Nueva consulta recibida:\n\n' +
-      'Nombre: ' + data.name + '\n' +
+      'Usuario: ' + data.user + '\n' +
       'Email: ' + data.email + '\n' +
-      'Categoría: ' + data.category + '\n' +
-      'Acción: ' + data.action + '\n' +
-      'Detalle: ' + data.detail + '\n\n' +
+      'Mensaje: ' + data.userText + '\n\n' +
       '---\nEnviado desde MET Quiz';
-
     MailApp.sendEmail(NOTIFICATION_EMAIL, subject, body);
   } catch (error) {
     console.error('Error enviando email:', error);
   }
 }
 
-// Función doGet para pruebas rápidas
 function doGet() {
-  return ContentService.createTextOutput('MET Quiz Apps Script is running correctly.')
+  return ContentService
+    .createTextOutput('MET Quiz Apps Script is running correctly.')
     .setMimeType(ContentService.MimeType.TEXT);
+}
+
+// Clean up audio files older than 30 days
+function cleanOldFiles() {
+  try {
+    const folder = DriveApp.getFolderById(USER_VOICE_FOLDER_ID);
+    const files = folder.getFiles();
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 30);
+    let deleted = 0;
+    while (files.hasNext()) {
+      const file = files.next();
+      if (file.getDateCreated() < cutoff) {
+        file.setTrashed(true);
+        deleted++;
+      }
+    }
+    console.log('CleanOldFiles: ' + deleted + ' files trashed.');
+  } catch (error) {
+    console.error('Error in cleanOldFiles:', error);
+  }
 }
