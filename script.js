@@ -912,18 +912,8 @@ function saveProgress() {
     writingResponses: sectionResponses,
     writingGroupId: currentGroup?.id || null,
     writingAbanicoId: currentAbanicoId,
-    speakingTaskIndex: speakingTaskIndex,
     answers: existing.answers || {},
   };
-
-  // Save speaking responses separately to avoid circular reference
-  if (speakingResponses && speakingResponses.length > 0) {
-    progress.speakingResponses = speakingResponses.map((r) =>
-      r ? { duration: r.duration, timestamp: r.timestamp } : null,
-    );
-  } else {
-    progress.speakingResponses = [];
-  }
 
   // Save abanico IDs for MC sections
   if (currentPartKey && currentAbanicoId) {
@@ -964,7 +954,6 @@ function resetAllProgress() {
     score = { WRITING: 0, LISTENING: 0, READING_AND_GRAMMAR: 0, SPEAKING: 0 };
     answeredQuestions = new Set();
     sectionResponses = {};
-    speakingResponses = [];
     currentItemIndex = 0;
     currentQuestionIndex = 0;
     renderCategorySelect();
@@ -1347,38 +1336,18 @@ function getPartProgress(partKey, saved) {
   // Find items for this partKey in SECTION_PARTS
   const itemsInPart = sectionParts.filter((item) => item.partKey === partKey);
 
-  // If section type is textarea or audio (Writing/Speaking), use response-based counting
+  // If section type is textarea or audio (Writing/Speaking), use unified sectionResponses by partKey/itemNum
   if (sectionType === "textarea" || sectionType === "audio") {
     const total = itemsInPart.length;
-
-    // Get responses from the correct source (sectionResponses for Writing, speakingResponses for Speaking)
-    let responses = [];
-    if (sectionType === "textarea") {
-      // Writing uses sectionResponses (textarea responses)
-      responses = saved.writingResponses || sectionResponses || [];
-    } else if (sectionType === "audio") {
-      // Speaking uses speakingResponses (audio responses)
-      responses = saved.speakingResponses || speakingResponses || [];
-    }
+    const responses = saved.writingResponses || sectionResponses || {};
 
     const answered = itemsInPart.filter((item) => {
-      let response;
-      if (sectionType === "textarea") {
-        // New per-partKey storage format
-        response = responses?.[item.partKey]?.[item.itemNum];
-      } else {
-        // Speaking: flat array (global index)
-        const globalIdx = sectionParts.indexOf(item);
-        response = responses?.[globalIdx];
-      }
+      const response = responses?.[item.partKey]?.[item.itemNum];
       if (!response) return false;
-
       if (item.inputType === "textarea") {
         return typeof response === "string" && response.length > 0;
-      } else if (item.inputType === "audio") {
-        return response !== null && response !== undefined;
       }
-      return false;
+      return true;
     }).length;
 
     const percent = total > 0 ? Math.round((answered / total) * 100) : 0;
@@ -1665,10 +1634,11 @@ function renderSpeakingStep(item, sectionData) {
   if (!item) return;
 
   const container = getElement("options-container");
-  const taskIndex = currentItemIndex;
+  const partKey = item.partKey;
+  const itemNum = item.itemNum;
 
   // Get part data from sectionData
-  const partId = SECTION_CONFIG[currentPartKey]?.partId;
+  const partId = SECTION_CONFIG[partKey]?.partId;
   const partData = sectionData?.parts?.find((p) => p.id === partId);
 
   // Get selected abanico
@@ -1680,8 +1650,8 @@ function renderSpeakingStep(item, sectionData) {
     abanico = partData.abanicos[0];
   }
 
-  // Get question from abanico (unified as "questions" not "tasks")
-  const task = abanico?.questions && abanico.questions[taskIndex];
+  // Get question from abanico using item.itemNum-1 (0-based index within abanico.questions)
+  const task = abanico?.questions && abanico.questions[itemNum - 1];
 
   if (!task) return;
 
@@ -1700,28 +1670,29 @@ function renderSpeakingStep(item, sectionData) {
   getElement("question-text").classList.add("hidden");
   container.innerHTML = html;
 
-  setupSpeakingEvents(taskIndex, task.timeLimit);
+  setupSpeakingEvents(partKey, itemNum, task.timeLimit);
 }
 
 // Setup Speaking recording events
-function setupSpeakingEvents(taskIndex, timeLimit) {
+function setupSpeakingEvents(partKey, itemNum, timeLimit) {
   const startBtn = getElement("start-recording-btn");
   const stopBtn = getElement("stop-recording-btn");
   const statusEl = getElement("recording-status");
   const playbackAudio = getElement("playback-audio");
 
   if (startBtn) {
-    startBtn.onclick = () => startSpeakingrecording(taskIndex, timeLimit);
+    startBtn.onclick = () =>
+      startSpeakingrecording(partKey, itemNum, timeLimit);
   }
   if (stopBtn) {
-    stopBtn.onclick = () => stopSpeakingrecording(taskIndex);
+    stopBtn.onclick = () => stopSpeakingrecording();
   }
 
-  // Load saved recording if exists
-  getSpeakingAudio(taskIndex).then((record) => {
+  // Load saved recording if exists (identified by partKey+itemNum, not flat index)
+  getSpeakingAudio(partKey, itemNum).then((record) => {
     if (record && record.blob) {
-      speakingResponses[taskIndex] = {
-        blob: record.blob,
+      if (!sectionResponses[partKey]) sectionResponses[partKey] = {};
+      sectionResponses[partKey][itemNum] = {
         duration: record.duration,
         timestamp: record.timestamp,
       };
@@ -1738,7 +1709,7 @@ function setupSpeakingEvents(taskIndex, timeLimit) {
 }
 
 // Start Speaking recording
-async function startSpeakingrecording(taskIndex, timeLimit) {
+async function startSpeakingrecording(partKey, itemNum, timeLimit) {
   const startBtn = getElement("start-recording-btn");
   const stopBtn = getElement("stop-recording-btn");
   const statusEl = getElement("recording-status");
@@ -1756,12 +1727,13 @@ async function startSpeakingrecording(taskIndex, timeLimit) {
     speakingMediaRecorder.onstop = () => {
       const blob = new Blob(speakingAudioChunks, { type: "audio/webm" });
       const duration = timeLimit - speakingTimerRemaining;
-      speakingResponses[taskIndex] = {
-        blob,
+      // Store metadata in sectionResponses by partKey/itemNum (unified with Writing)
+      if (!sectionResponses[partKey]) sectionResponses[partKey] = {};
+      sectionResponses[partKey][itemNum] = {
         duration,
         timestamp: Date.now(),
       };
-      saveSpeakingAudio(taskIndex, blob, duration);
+      saveSpeakingAudio(partKey, itemNum, blob, duration);
 
       const playbackAudio = getElement("playback-audio");
       if (playbackAudio) {
@@ -1798,7 +1770,7 @@ async function startSpeakingrecording(taskIndex, timeLimit) {
 }
 
 // Stop Speaking recording
-function stopSpeakingrecording(taskIndex) {
+function stopSpeakingrecording() {
   if (speakingMediaRecorder && speakingMediaRecorder.state !== "inactive") {
     speakingMediaRecorder.stop();
     if (speakingStream) {
@@ -2373,11 +2345,10 @@ function queueSectionResponses() {
         qText = task?.text || "";
       }
     } else if (inputType === "audio") {
-      const globalIdx = sectionParts.indexOf(item);
-      const sr = speakingResponses[globalIdx];
+      const sr = sectionResponses[item.partKey]?.[item.itemNum];
       if (!sr) return;
       type = "speaking";
-      const task = abanico?.questions?.[globalIdx];
+      const task = abanico?.questions?.[item.itemNum - 1];
       qText = task?.prompt || "";
     } else {
       return;
@@ -2701,10 +2672,6 @@ function updatePrevButtonVisibility() {
 
 // Variables para la sección de Speaking
 let speakingPart = null;
-// Índice de la tarea actual
-let speakingTaskIndex = 0;
-// Respuestas de audio
-let speakingResponses = [];
 // Tiempo restante de Speaking
 let speakingTimerRemaining = 0;
 // Intervalo del cronómetro
@@ -2752,15 +2719,16 @@ function openSpeakingDB() {
   });
 }
 
-// Guarda un audio de Speaking en la base de datos
-function saveSpeakingAudio(taskIndex, blob, duration) {
+// Guarda un audio de Speaking en la base de datos (keyed by partKey+itemNum)
+function saveSpeakingAudio(partKey, itemNum, blob, duration) {
   return openSpeakingDB().then((db) => {
     return new Promise((resolve, reject) => {
       const tx = db.transaction(SPEAKING_STORE_NAME, "readwrite");
       const store = tx.objectStore(SPEAKING_STORE_NAME);
       const record = {
-        id: `speaking_task_${taskIndex}`,
-        taskIndex,
+        id: `speaking_${partKey}_${itemNum}`,
+        partKey,
+        itemNum,
         blob,
         duration,
         timestamp: Date.now(),
@@ -2772,13 +2740,13 @@ function saveSpeakingAudio(taskIndex, blob, duration) {
   });
 }
 
-// Obtiene un audio guardado de Speaking
-function getSpeakingAudio(taskIndex) {
+// Obtiene un audio guardado de Speaking (by partKey+itemNum)
+function getSpeakingAudio(partKey, itemNum) {
   return openSpeakingDB().then((db) => {
     return new Promise((resolve, reject) => {
       const tx = db.transaction(SPEAKING_STORE_NAME, "readonly");
       const store = tx.objectStore(SPEAKING_STORE_NAME);
-      const request = store.get(`speaking_task_${taskIndex}`);
+      const request = store.get(`speaking_${partKey}_${itemNum}`);
       request.onsuccess = () => resolve(request.result || null);
       request.onerror = (event) => reject(event.target.error);
     });
@@ -2823,10 +2791,9 @@ function beginSpeaking(partKey, saved = null) {
 
   currentPartKey = partKey;
 
-  // Load existing speaking responses to preserve data across parts
-  speakingTaskIndex = saved?.speakingTaskIndex || 0;
-  speakingResponses = saved?.speakingResponses || speakingResponses || [];
-  currentAbanicoId = saved?.speakingAbanicoId || currentAbanicoId || null;
+  // Load existing sectionResponses to preserve data across parts (unified with Writing)
+  sectionResponses = saved?.writingResponses || sectionResponses || {};
+  currentAbanicoId = saved?.writingAbanicoId || currentAbanicoId || null;
 
   // Select random abanico only if none set
   if (!currentAbanicoId) {
@@ -2843,31 +2810,29 @@ function beginSpeaking(partKey, saved = null) {
   setupInstructionsPanel();
   logActivity("START", `${currentSection} - ${partKey}`);
 
-  // Load saved audio recordings
+  // Load saved audio recordings and populate sectionResponses metadata
   getAllSpeakingAudio()
     .then((records) => {
       records.forEach((record) => {
-        if (record.taskIndex >= 0) {
-          speakingResponses[record.taskIndex] = {
-            blob: record.blob,
+        const pk = record.partKey;
+        const num = record.itemNum;
+        if (pk && num != null) {
+          if (!sectionResponses[pk]) sectionResponses[pk] = {};
+          sectionResponses[pk][num] = {
             duration: record.duration,
             timestamp: record.timestamp,
           };
         }
       });
-      // Find correct itemIndex for renderStep
+      // Find correct itemIndex and set currentItemIndex
       const sectionParts = SECTION_PARTS[currentSection];
       const itemIndex = sectionParts.findIndex(
         (item) => item.partKey === currentPartKey,
       );
-      renderStep(
-        currentSection,
-        itemIndex >= 0 ? itemIndex : 0,
-        sectionData,
-        "audio",
-      );
+      currentItemIndex = itemIndex >= 0 ? itemIndex : 0;
+      renderStep(currentSection, currentItemIndex, sectionData, "audio");
       hashNavigationLocked = true;
-      updateHash(partKey, itemIndex >= 0 ? itemIndex : 0);
+      updateHash(partKey, currentItemIndex);
       hashNavigationLocked = false;
     })
     .catch(() => {
@@ -2875,14 +2840,10 @@ function beginSpeaking(partKey, saved = null) {
       const itemIndex = sectionParts.findIndex(
         (item) => item.partKey === currentPartKey,
       );
-      renderStep(
-        currentSection,
-        itemIndex >= 0 ? itemIndex : 0,
-        sectionData,
-        "audio",
-      );
+      currentItemIndex = itemIndex >= 0 ? itemIndex : 0;
+      renderStep(currentSection, currentItemIndex, sectionData, "audio");
       hashNavigationLocked = true;
-      updateHash(partKey, itemIndex >= 0 ? itemIndex : 0);
+      updateHash(partKey, currentItemIndex);
       hashNavigationLocked = false;
     });
 
@@ -2977,19 +2938,12 @@ function buildPreviewSlides(section, items, inputType) {
     });
 
     const responses =
-      inputType === "textarea"
-        ? sectionResponses && Object.keys(sectionResponses).length > 0
-          ? sectionResponses
-          : saved?.writingResponses || {}
-        : speakingResponses && speakingResponses.length > 0
-          ? speakingResponses
-          : saved?.speakingResponses || [];
+      sectionResponses && Object.keys(sectionResponses).length > 0
+        ? sectionResponses
+        : saved?.writingResponses || {};
 
     const sectionData = quizData[section];
-    const abanicoId =
-      inputType === "textarea"
-        ? saved?.writingAbanicoId || currentAbanicoId || null
-        : saved?.speakingAbanicoId || currentAbanicoId || null;
+    const abanicoId = saved?.writingAbanicoId || currentAbanicoId || null;
 
     Object.values(partMap).forEach((part) => {
       let html = '<div class="preview-card">';
@@ -3005,20 +2959,13 @@ function buildPreviewSlides(section, items, inputType) {
       }
 
       part.items.forEach((item) => {
-        let response;
-        let hasResponse;
-        let globalIdx;
-        if (inputType === "textarea") {
-          // Per-partKey storage
-          response = responses?.[item.partKey]?.[item.itemNum];
-          hasResponse = typeof response === "string" && response.length > 0;
-        } else {
-          // Speaking: flat array (global index)
-          globalIdx = items.indexOf(item);
-          response = responses?.[globalIdx];
-          hasResponse = response && (response.blob || response.duration);
-        }
-        if (inputType === "textarea") {
+        const response = responses?.[item.partKey]?.[item.itemNum];
+        const isTextarea = item.inputType === "textarea";
+        const hasResponse = isTextarea
+          ? typeof response === "string" && response.length > 0
+          : response !== null && response !== undefined;
+
+        if (isTextarea) {
           // Writing
           if (item.isEssay) {
             if (abanico?.topic) {
@@ -3046,7 +2993,7 @@ function buildPreviewSlides(section, items, inputType) {
           }
           html += `<div class="preview-q-answer ${hasResponse ? "answered" : "unanswered"}">`;
           if (hasResponse) {
-            html += `<button class="btn-preview-playback" onclick="playSpeakingPreview(${globalIdx})">Play recording (${response.duration}s)</button>`;
+            html += `<button class="btn-preview-playback" onclick="playSpeakingPreview('${item.partKey}', ${item.itemNum})">Play recording (${response.duration}s)</button>`;
           } else {
             html += "Not answered";
           }
@@ -3192,18 +3139,12 @@ function getProgressKeyForPreview(partKey, qNum) {
   return `${partKey.toLowerCase()}_q${qNum.toString().padStart(2, "0")}`;
 }
 
-// Play speaking preview audio from IndexedDB
-async function playSpeakingPreview(taskIndex) {
-  const record = await getSpeakingAudio(taskIndex).catch(() => null);
+// Play speaking preview audio from IndexedDB (identified by partKey+itemNum)
+async function playSpeakingPreview(partKey, itemNum) {
+  const record = await getSpeakingAudio(partKey, itemNum).catch(() => null);
   if (record && record.blob) {
     const audio = new Audio(URL.createObjectURL(record.blob));
     audio.play();
-  } else {
-    const response = speakingResponses[taskIndex];
-    if (response && response.blob) {
-      const audio = new Audio(URL.createObjectURL(response.blob));
-      audio.play();
-    }
   }
 }
 
@@ -3286,27 +3227,13 @@ function showResults() {
         );
         const total = itemsInPart.length;
 
-        let responses;
-        if (sectionType === "textarea") {
-          responses =
-            sectionResponses && Object.keys(sectionResponses).length > 0
-              ? sectionResponses
-              : saved?.writingResponses || {};
-        } else {
-          responses =
-            speakingResponses && speakingResponses.length > 0
-              ? speakingResponses
-              : saved?.speakingResponses || [];
-        }
+        const responses =
+          sectionResponses && Object.keys(sectionResponses).length > 0
+            ? sectionResponses
+            : saved?.writingResponses || {};
 
         const answered = itemsInPart.filter((item) => {
-          let response;
-          if (sectionType === "textarea") {
-            response = responses?.[item.partKey]?.[item.itemNum];
-          } else {
-            const globalIdx = sectionParts.indexOf(item);
-            response = responses?.[globalIdx];
-          }
+          const response = responses?.[item.partKey]?.[item.itemNum];
           if (!response) return false;
           if (item.inputType === "textarea") {
             return typeof response === "string" && response.length > 0;
