@@ -1749,6 +1749,17 @@ async function startSpeakingrecording(partKey, itemNum, timeLimit) {
       if (startBtn) startBtn.classList.remove("hidden");
       if (stopBtn) stopBtn.classList.add("hidden");
 
+      // Convert blob to base64 and store in sectionResponses for payload
+      const reader = new FileReader();
+      reader.onload = function () {
+        const base64 = reader.result.split(",")[1];
+        if (sectionResponses[partKey]?.[itemNum]) {
+          sectionResponses[partKey][itemNum].userVoiceUrl = base64;
+        }
+        saveProgress();
+      };
+      reader.readAsDataURL(blob);
+
       saveProgress();
       updatePrevButtonVisibility();
     };
@@ -2323,6 +2334,7 @@ function queueSectionResponses() {
 
   sectionParts.forEach(function (item) {
     let response = null;
+    let userVoiceUrl = "";
     let qText = "";
     let type = "";
 
@@ -2350,6 +2362,7 @@ function queueSectionResponses() {
       type = "speaking";
       const task = abanico?.questions?.[item.itemNum - 1];
       qText = task?.prompt || "";
+      userVoiceUrl = sr.userVoiceUrl || "";
     } else {
       return;
     }
@@ -2361,6 +2374,7 @@ function queueSectionResponses() {
         question: qText,
         type: type,
         userText: response || "",
+        userVoiceUrl: userVoiceUrl,
         score: 1,
       }),
     );
