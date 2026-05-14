@@ -1701,52 +1701,36 @@ h1 {
 }
 
 .group-q-feedback {
-  /* Inherits from .feedback base class */
+  /* Deprecated: use .feedback-area instead */
 }
 
-/* Feedback-box: reserves space to prevent CLS when feedback appears */
-.feedback-box {
+/* Feedback-area: fixed container inside each question-item to prevent CLS */
+.feedback-area {
   margin-top: 10px;
   padding: 8px 12px;
   border-radius: 8px;
   font-size: 0.85rem;
   font-weight: 500;
-  min-height: 24px;
+  min-height: 28px;
   background-color: var(--bg-secondary);
-  transition: background-color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
 }
 
-.feedback-box.correct {
+.feedback-area.correct {
   background-color: var(--color-correct-bg);
   color: var(--color-primary-dark);
 }
 
-.feedback-box.incorrect {
+.feedback-area.incorrect {
   background-color: var(--color-incorrect-bg);
   color: var(--color-incorrect);
 }
 
-[data-theme="dark"] .feedback-box.incorrect {
+[data-theme="dark"] .feedback-area.incorrect {
   background-color: #3a2a10;
   color: #fbbf24;
-}
-
-.group-q-feedback.correct {
-  /* Inherits from .feedback.correct */
-  display: block !important;
-}
-
-.group-q-feedback.incorrect {
-  /* Inherits from .feedback.incorrect */
-  display: block !important;
-}
-
-[data-theme="dark"] .group-q-feedback.incorrect {
-  /* Inherits from .feedback.incorrect dark theme */
-}
-
-.group-q-feedback.hidden {
-  display: none;
 }
 
 .check-single-btn {

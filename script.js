@@ -2101,16 +2101,7 @@ function renderGroupQuestions(grp) {
 
     html += `</div>`;
 
-    let fbClass = "feedback-box group-q-feedback";
-    let fbText = "";
-    if (isAnswered && savedAnswer) {
-      const isCorrect = letters[q.correctShuffledIndex] === savedAnswer;
-      fbClass += isCorrect ? " correct" : " incorrect";
-      fbText = isCorrect
-        ? "Correct!"
-        : `Wrong. Correct answer: ${letters[q.correctShuffledIndex]}.`;
-    }
-    html += `<div class="${fbClass}" data-global="${globalNum}">${fbText}</div>`;
+    html += `<div class="feedback-area"></div>`;
     html += `</div>`;
   });
 
@@ -2212,7 +2203,7 @@ function checkCurrentGroup() {
 
     const optIdx = groupSelectedAnswers[q.globalNumber];
     const feedback = document.querySelector(
-      `.group-q-feedback[data-global="${q.globalNumber}"]`,
+      `.group-question-item[data-global="${q.globalNumber}"] .feedback-area`,
     );
     const options = document.querySelectorAll(
       `.option[data-global="${q.globalNumber}"]`,
@@ -2232,7 +2223,7 @@ function checkCurrentGroup() {
       score[q.category]++;
       selectedOpt.classList.add("correct");
       if (feedback) {
-        feedback.className = "feedback-box group-q-feedback correct";
+        feedback.className = "feedback-area correct";
         feedback.textContent = "Correct!";
       }
     } else {
@@ -2242,7 +2233,7 @@ function checkCurrentGroup() {
       );
       if (correctOpt) correctOpt.classList.add("correct");
       if (feedback) {
-        feedback.className = "feedback-box group-q-feedback incorrect";
+        feedback.className = "feedback-area incorrect";
         feedback.textContent = `Wrong. Correct answer: ${letters[q.correctShuffledIndex]}.`;
       }
     }
