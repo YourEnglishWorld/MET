@@ -527,7 +527,7 @@ function loadFromHash() {
       const targetItemIndex = sectionParts.findIndex(
         (item) => item.partKey === targetPartKey && item.itemNum === qStart,
       );
-      if (targetItemIndex >= 0) {
+      if (targetItemIndex >= 0 && targetItemIndex !== currentItemIndex) {
         currentItemIndex = targetItemIndex;
         renderStep(
           sectionKey,
@@ -546,7 +546,7 @@ function loadFromHash() {
           (g) =>
             qStart >= g.questionRange.start && qStart <= g.questionRange.end,
         );
-        if (targetGroupIndex >= 0) {
+        if (targetGroupIndex >= 0 && targetGroupIndex !== currentGroupIndex) {
           currentGroupIndex = targetGroupIndex;
           loadGroup();
         }
